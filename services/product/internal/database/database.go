@@ -2,12 +2,13 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 func NewDB(connStr string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", connStr)
+	db, err := connect(connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
 	return db, nil
 }
@@ -15,7 +16,7 @@ func NewDB(connStr string) (*sql.DB, error) {
 func connect(connStr string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
 
 	return db, nil
