@@ -23,6 +23,7 @@ type CreateProductRequest struct {
 	Manufacturer string `json:"manufacturer"`
 	Price        int    `json:"price"`
 	Amount       int    `json:"amount"`
+	Status       bool   `json:"status"`
 	Category     string `json:"category"`
 }
 

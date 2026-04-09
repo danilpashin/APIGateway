@@ -3,9 +3,13 @@ package handler
 import (
 	"apigateway/services/product/internal/domain"
 	"apigateway/services/product/internal/service"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type ProductHandler struct {
@@ -18,31 +22,166 @@ func NewProductHandler(productService service.ProductService) *ProductHandler {
 
 func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	var req domain.CreateProductRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.productService.CreateProduct(r.Context(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(product)
 }
 
 func (h *ProductHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "empty id", http.StatusBadRequest)
+		return
+	}
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, "id is not a number", http.StatusBadRequest)
+		return
+	}
+
+	var req *domain.UpdateProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.productService.UpdateProduct(r.Context(), idInt, req)
+	if err != nil {
+		http.Error(w, "failed update", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
 }
 
 func (h *ProductHandler) GetProductHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "no id to get the product", http.StatusBadRequest)
+		return
+	}
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, "id is not a number", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.productService.GetProduct(r.Context(), idInt)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	if product == nil {
+		h.handleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
 }
 
 func (h *ProductHandler) ListProductsHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	cursor := r.URL.Query().Get("cursor")
+	if cursor == "" {
+		cursor = "0"
+	}
+	limit := r.URL.Query().Get("limit")
+	if limit == "" {
+		limit = "10"
+	}
+	cursorInt, err := strconv.Atoi(cursor)
+	if err != nil {
+		http.Error(w, "cursor is not a number", http.StatusBadRequest)
+		return
+	}
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		http.Error(w, "limit is not a number", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.productService.ListProducts(r.Context(), cursorInt, uint64(limitInt))
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	if product == nil {
+		w.WriteHeader(http.StatusNoContent)
+		h.handleError(w, domain.ErrProductsNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
 }
 
 func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "empty id", http.StatusBadRequest)
+		return
+	}
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, "id is not a number", http.StatusBadRequest)
+		return
+	}
+
+	err = h.productService.DeleteProduct(r.Context(), idInt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ProductHandler) handleError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, domain.ErrProductNotFound):
-		http.Error(w, "Product not found", http.StatusNotFound)
+	case errors.Is(err, domain.ErrProductsNotFound):
+		http.Error(w, "Products not found", http.StatusNotFound)
 
 	case errors.Is(err, domain.ErrForbidden):
 		http.Error(w, "Forbidden", http.StatusForbidden)
+
+	case errors.Is(err, domain.ErrNameRequired):
+		http.Error(w, "Name is required", http.StatusBadRequest)
+
+	case errors.Is(err, domain.ErrManufacturerRequired):
+		http.Error(w, "Manufacturer is required", http.StatusBadRequest)
+
+	case errors.Is(err, domain.ErrPriceRequired):
+		http.Error(w, "Price is required", http.StatusBadRequest)
+
+	case errors.Is(err, domain.ErrAmountRequired):
+		http.Error(w, "Amount is required", http.StatusBadRequest)
+
+	case errors.Is(err, domain.ErrCategoryRequired):
+		http.Error(w, "Category is required", http.StatusBadRequest)
 
 	default:
 		log.Printf("unexpected error: %v", err)

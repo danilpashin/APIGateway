@@ -3,8 +3,13 @@ package main
 import (
 	"apigateway/services/product/internal/config"
 	"apigateway/services/product/internal/database"
+	"apigateway/services/product/internal/handler"
+	"apigateway/services/product/internal/middleware"
+	"apigateway/services/product/internal/repository/postgres"
+	"apigateway/services/product/internal/service"
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,19 +20,27 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
 	env.LoadEnv()
 	cfg := config.Load()
+
+	if handleCLI() {
+		return
+	}
+
 	db := initDB()
+	defer db.Close()
 
 	runServer(cfg, db)
 }
 
 func runServer(cfg *config.Config, db *sql.DB) {
-	r := newRouter()
+	r := newRouter(db)
 
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.HTTPPort),
@@ -44,13 +57,38 @@ func runServer(cfg *config.Config, db *sql.DB) {
 	gracefulShutdown(&srv, db)
 }
 
-func newRouter() *chi.Mux {
-	r := chi.NewRouter()
+func handleCLI() bool {
+	var cmd string
+	var version int
 
-	r.Get("/product", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		w.Write([]byte("Checking graceful shutdown"))
-	}))
+	flag.StringVar(&cmd, "cmd", "", "migration command: up, down, force, version")
+	flag.IntVar(&version, "version", version, "version for force or migrate command")
+	flag.Parse()
+
+	if cmd == "" {
+		return false
+	}
+
+	if err := database.RunMigrations(cmd, version); err != nil {
+		log.Fatalf("Failed to migrate: %v", err)
+	}
+	log.Print("Migration completed")
+
+	return true
+}
+
+func newRouter(db *sql.DB) *chi.Mux {
+	productRepo := postgres.NewPostgresProductRepository(db)
+	productService := service.NewProductService(productRepo)
+	productHandler := handler.NewProductHandler(*productService)
+
+	r := chi.NewRouter()
+	r.Use(middleware.LoggingMiddleware)
+	r.Post("/products", productHandler.CreateProductHandler)
+	r.Put("/products/{id}", productHandler.UpdateProductHandler)
+	r.Get("/products/{id}", productHandler.GetProductHandler)
+	r.Get("/products", productHandler.ListProductsHandler)
+	r.Delete("/products/{id}", productHandler.DeleteProductHandler)
 
 	return r
 }

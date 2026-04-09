@@ -19,11 +19,63 @@ func NewProductService(repo postgres.ProductRepoInterface) *ProductService {
 func (s *ProductService) CreateProduct(ctx context.Context, req *domain.CreateProductRequest) (*domain.Product, error) {
 	insertData := make(map[string]interface{}, 0)
 
+	if req.Name != "" {
+		insertData["name"] = req.Name
+	}
+	if req.Manufacturer != "" {
+		insertData["manufacturer"] = req.Manufacturer
+	}
+	if req.Price > 0 {
+		insertData["price"] = req.Price
+	}
+	if req.Amount > 0 {
+		insertData["amount"] = req.Amount
+	}
+	if req.Status {
+		insertData["status"] = req.Status
+	}
+	if req.Category != "" {
+		insertData["category"] = req.Category
+	}
+
+	if len(insertData) == 0 {
+		return nil, errors.New("empty insert data")
+	}
+
 	return s.repo.CreateProduct(ctx, insertData)
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.UpdateProductRequest) (*domain.Product, error) {
 	updateData := make(map[string]interface{}, 0)
+
+	if req.Name != nil {
+		if *req.Name == "" {
+			return nil, errors.New("name cannot be empty")
+		}
+		updateData["name"] = *req.Name
+	}
+	if req.Manufacturer != nil {
+		if *req.Manufacturer == "" {
+			return nil, errors.New("manufacturer cannot be empty")
+		}
+		updateData["manufacturer"] = *req.Manufacturer
+	}
+	if req.Amount != nil {
+		if *req.Amount <= 0 {
+			return nil, errors.New("amount must be positive")
+		}
+		updateData["amount"] = *req.Amount
+	}
+	if req.Price != nil {
+		if *req.Price <= 0 {
+			return nil, errors.New("price must be positive")
+		}
+		updateData["price"] = *req.Price
+	}
+
+	if len(updateData) == 0 {
+		return nil, errors.New("no updates were set")
+	}
 
 	updateData["updated_at"] = time.Now()
 

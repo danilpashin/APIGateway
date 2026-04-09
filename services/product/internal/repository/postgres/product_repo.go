@@ -23,7 +23,7 @@ func (r *ProductRepository) CreateProduct(ctx context.Context, insertData map[st
 	var product domain.Product
 	builder := squirrel.Insert("products").
 		SetMap(insertData).
-		Suffix("RETURNING id, name, manufacturer, price, amount, created_at, updated_at").
+		Suffix("RETURNING id, name, manufacturer, price, amount, status, category, created_at, updated_at").
 		PlaceholderFormat(squirrel.Dollar)
 
 	query, args, err := builder.ToSql()
@@ -32,7 +32,7 @@ func (r *ProductRepository) CreateProduct(ctx context.Context, insertData map[st
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).
-		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.CreatedAt, &product.UpdatedAt)
+		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r *ProductRepository) UpdateProduct(ctx context.Context, id int, updateDat
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args).
-		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.CreatedAt, &product.UpdatedAt)
+		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (r *ProductRepository) GetProduct(ctx context.Context, id int) (*domain.Pro
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).
-		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.CreatedAt, &product.UpdatedAt)
+		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (r *ProductRepository) ListProducts(ctx context.Context, cursor int, limit 
 
 	for rows.Next() {
 		product := new(domain.Product)
-		err = rows.Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.CreatedAt, &product.UpdatedAt)
+		err = rows.Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
