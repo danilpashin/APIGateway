@@ -1,6 +1,8 @@
 package main
 
 import (
+	"apigateway/services/product/internal/config"
+	"apigateway/services/product/internal/database"
 	"context"
 	"database/sql"
 	"fmt"
@@ -9,8 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"pkg/env"
-	"product/internal/config"
-	"product/internal/database"
 	"syscall"
 	"time"
 
