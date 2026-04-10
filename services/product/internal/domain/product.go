@@ -19,12 +19,12 @@ type Product struct {
 
 // ===== CREATE =====
 type CreateProductRequest struct {
-	Name         string `json:"name"`
-	Manufacturer string `json:"manufacturer"`
-	Price        int    `json:"price"`
-	Amount       int    `json:"amount"`
-	Status       bool   `json:"status"`
-	Category     string `json:"category"`
+	Name         string `json:"name" validate:"required,min=5,max=150"`
+	Manufacturer string `json:"manufacturer" validate:"required,min=2,max=50"`
+	Price        int    `json:"price" validate:"required,gt=0"`
+	Amount       int    `json:"amount" validate:"required,gte=0"`
+	Status       bool   `json:"status,omitempty"`
+	Category     string `json:"category" validate:"required,min=5,max=100"`
 }
 
 type CreateProductResponse struct {
@@ -44,8 +44,8 @@ type UpdateProductRequest struct {
 	Manufacturer *string `json:"manufacturer"`
 	Price        *int    `json:"price"`
 	Amount       *int    `json:"amount"`
-	Status       bool    `json:"status"`
-	Category     string  `json:"category"`
+	Status       *bool   `json:"status"`
+	Category     *string `json:"category"`
 }
 
 type UpdateProductResponse struct {
@@ -61,11 +61,11 @@ type UpdateProductResponse struct {
 
 // ===== GET =====
 type GetProductRequest struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
-	Manufacturer string `json:"manufacturer"`
-	Price        int    `json:"price"`
-	Category     string `json:"category"`
+	ID           int    `json:"id,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Manufacturer string `json:"manufacturer,omitempty"`
+	Price        int    `json:"price,omitempty"`
+	Category     string `json:"category,omitempty"`
 }
 
 type GetProductResponse struct {
@@ -80,10 +80,10 @@ type GetProductResponse struct {
 
 // ===== LIST =====
 type ListProductsRequest struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
-	Manufacturer string `json:"manufacturer"`
-	Price        int    `json:"price"`
+	ID           int    `json:"id,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Manufacturer string `json:"manufacturer,omitempty"`
+	Price        int    `json:"price,omitempty"`
 }
 
 type ListProductsResponse struct {

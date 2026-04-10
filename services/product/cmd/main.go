@@ -83,6 +83,7 @@ func newRouter(db *sql.DB) *chi.Mux {
 	productHandler := handler.NewProductHandler(*productService)
 
 	r := chi.NewRouter()
+	r.Use(middleware.PanicRecoveryMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 	r.Post("/products", productHandler.CreateProductHandler)
 	r.Put("/products/{id}", productHandler.UpdateProductHandler)

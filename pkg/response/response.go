@@ -1,0 +1,45 @@
+package response
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/go-playground/validator/v10"
+)
+
+func WriteValidationError(w http.ResponseWriter, err error) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnprocessableEntity)
+
+	errors := formatValidationError(err)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "validation error",
+		"errors":  errors,
+	})
+}
+
+func formatValidationError(err error) map[string]string {
+	errMap := make(map[string]string, 0)
+
+	for _, err := range err.(validator.ValidationErrors) {
+		field := err.Field()
+		tag := err.Tag()
+
+		switch tag {
+		case "required":
+			errMap[field] = "this field is required"
+		case "min":
+			errMap[field] = "too short"
+		case "max":
+			errMap[field] = "too large"
+		case "gt":
+			errMap[field] = fmt.Sprint("must be greater than ", err.Param())
+		case "gte":
+			errMap[field] = fmt.Sprint("must be greater or equal ", err.Param())
+		default:
+			errMap[field] = "incorrect input"
+		}
+	}
+	return errMap
+}

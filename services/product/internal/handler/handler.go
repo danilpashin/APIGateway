@@ -3,10 +3,12 @@ package handler
 import (
 	"apigateway/services/product/internal/domain"
 	"apigateway/services/product/internal/service"
+	"apigateway/services/product/internal/validator"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
+	"pkg/response"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -26,6 +28,11 @@ func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Req
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = validator.New(req); err != nil {
+		response.WriteValidationError(w, err)
 		return
 	}
 
