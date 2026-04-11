@@ -49,7 +49,7 @@ func runServer(cfg *config.Config, db *sql.DB) {
 	log.Print("Server starting on", srv.Addr)
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed: %v", err)
 		}
 	}()
