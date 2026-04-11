@@ -29,7 +29,7 @@ func main() {
 	env.LoadEnv()
 	cfg := config.Load()
 
-	if handleCLI() {
+	if migrateCLI() {
 		return
 	}
 
@@ -57,7 +57,7 @@ func runServer(cfg *config.Config, db *sql.DB) {
 	gracefulShutdown(&srv, db)
 }
 
-func handleCLI() bool {
+func migrateCLI() bool {
 	var cmd string
 	var version int
 
