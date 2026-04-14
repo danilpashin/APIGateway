@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type ProductRepository struct {
@@ -34,6 +35,10 @@ func (r *ProductRepository) CreateProduct(ctx context.Context, insertData map[st
 	err = r.db.QueryRowContext(ctx, query, args...).
 		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
+		var pgxErr *pgconn.PgError
+		if errors.As(err, &pgxErr) && pgxErr.Code == "23505" {
+			return nil, domain.ErrProductExist
+		}
 		return nil, err
 	}
 	log.Printf("Product name is %s, created on %s\n", product.Name, product.CreatedAt)

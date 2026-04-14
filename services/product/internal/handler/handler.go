@@ -38,7 +38,7 @@ func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Req
 
 	product, err := h.productService.CreateProduct(r.Context(), &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.handleError(w, err)
 		return
 	}
 
@@ -170,28 +170,39 @@ func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Req
 func (h *ProductHandler) handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, domain.ErrProductsNotFound):
-		http.Error(w, "Products not found", http.StatusNotFound)
+		JSONError(w, http.StatusNotFound, "Products not found")
+
+	case errors.Is(err, domain.ErrProductExist):
+		JSONError(w, http.StatusConflict, "Product already exists")
 
 	case errors.Is(err, domain.ErrForbidden):
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		JSONError(w, http.StatusForbidden, "Forbidden")
 
 	case errors.Is(err, domain.ErrNameRequired):
-		http.Error(w, "Name is required", http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "Name is required")
 
 	case errors.Is(err, domain.ErrManufacturerRequired):
-		http.Error(w, "Manufacturer is required", http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "Manufacturer is required")
 
 	case errors.Is(err, domain.ErrPriceRequired):
-		http.Error(w, "Price is required", http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "Price is required")
 
 	case errors.Is(err, domain.ErrAmountRequired):
-		http.Error(w, "Amount is required", http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "Amount is required")
 
 	case errors.Is(err, domain.ErrCategoryRequired):
-		http.Error(w, "Category is required", http.StatusBadRequest)
+		JSONError(w, http.StatusBadRequest, "Category is required")
 
 	default:
 		log.Printf("unexpected error: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		JSONError(w, http.StatusInternalServerError, "Internal server error")
 	}
+}
+
+func JSONError(w http.ResponseWriter, statusCode int, err string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error": err,
+	})
 }

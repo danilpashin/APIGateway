@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	ErrProductsNotFound = errors.New("products not found")
-	ErrProductExist     = errors.New("product already exist")
+	ErrProductExist     = errors.New("product already exists")
 
 	ErrNameRequired         = errors.New("name is required")
 	ErrManufacturerRequired = errors.New("manufacturer is required")
