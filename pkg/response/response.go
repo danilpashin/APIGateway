@@ -1,25 +1,12 @@
 package response
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/go-playground/validator/v10"
 )
 
-func WriteValidationError(w http.ResponseWriter, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusUnprocessableEntity)
-
-	errors := formatValidationError(err)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "validation error",
-		"errors":  errors,
-	})
-}
-
-func formatValidationError(err error) map[string]string {
+func FormatValidationError(err error) map[string]string {
 	errMap := make(map[string]string, 0)
 
 	for _, err := range err.(validator.ValidationErrors) {

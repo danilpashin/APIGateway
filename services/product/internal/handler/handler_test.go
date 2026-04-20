@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -62,7 +63,7 @@ type TestCreate struct {
 	resp       string
 	wantErr    bool
 	wantStatus int
-	wantResp   string
+	wantResp   domain.ErrorResponse
 }
 
 var testsCreate = []TestCreate{
@@ -88,7 +89,15 @@ var testsCreate = []TestCreate{
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
 		wantStatus: 409,
-		wantResp:   `Product already exists`,
+		wantResp:   domain.ErrorResponse{Error: "product already exists"},
+	},
+	{
+		name:       "no values",
+		product:    nil,
+		req:        `{"name": "", "manufacturer": "", "price": 0, "amount": 0, "category": ""}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: "validation error", Details: map[string]string{"Amount": "this field is required", "Category": "this field is required", "Manufacturer": "this field is required", "Name": "this field is required", "Price": "this field is required"}},
 	},
 }
 
@@ -114,14 +123,14 @@ func TestCreateProductHandler(t *testing.T) {
 			productHandler.CreateProductHandler(w, req)
 
 			if test.wantErr {
-				errMap := make(map[string]string, 0)
-				err := json.NewDecoder(w.Body).Decode(&errMap)
+				var errResp domain.ErrorResponse
+				err := json.NewDecoder(w.Body).Decode(&errResp)
 				if err != nil {
 					t.Fatal("failed to decode w.Body: ", err)
 				}
 
-				if errMap["error"] != test.wantResp {
-					t.Fatalf("expected %s, got: %s", test.wantResp, errMap["error"])
+				if !reflect.DeepEqual(errResp, test.wantResp) {
+					t.Fatalf("expected %s, got: %s", test.wantResp, errResp)
 				}
 
 				if test.wantStatus != w.Code {

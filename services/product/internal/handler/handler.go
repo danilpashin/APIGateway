@@ -27,12 +27,13 @@ func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Req
 	var req domain.CreateProductRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.handleError(w, err)
 		return
 	}
 
 	if err = validator.New(req); err != nil {
-		response.WriteValidationError(w, err)
+		errResp := domain.ErrorResponse{Error: "validation error", Details: response.FormatValidationError(err)}
+		JSONError(w, 400, errResp)
 		return
 	}
 
@@ -170,39 +171,37 @@ func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Req
 func (h *ProductHandler) handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, domain.ErrProductsNotFound):
-		JSONError(w, http.StatusNotFound, "Products not found")
+		JSONError(w, http.StatusNotFound, domain.ErrorResponse{Error: "products not found"})
 
 	case errors.Is(err, domain.ErrProductExist):
-		JSONError(w, http.StatusConflict, "Product already exists")
+		JSONError(w, http.StatusConflict, domain.ErrorResponse{Error: "product already exists"})
 
 	case errors.Is(err, domain.ErrForbidden):
-		JSONError(w, http.StatusForbidden, "Forbidden")
+		JSONError(w, http.StatusForbidden, domain.ErrorResponse{Error: "forbidden"})
 
 	case errors.Is(err, domain.ErrNameRequired):
-		JSONError(w, http.StatusBadRequest, "Name is required")
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "name is required"})
 
 	case errors.Is(err, domain.ErrManufacturerRequired):
-		JSONError(w, http.StatusBadRequest, "Manufacturer is required")
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "manufacturer is required"})
 
 	case errors.Is(err, domain.ErrPriceRequired):
-		JSONError(w, http.StatusBadRequest, "Price is required")
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "price is required"})
 
 	case errors.Is(err, domain.ErrAmountRequired):
-		JSONError(w, http.StatusBadRequest, "Amount is required")
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "amount is required"})
 
 	case errors.Is(err, domain.ErrCategoryRequired):
-		JSONError(w, http.StatusBadRequest, "Category is required")
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "category is required"})
 
 	default:
 		log.Printf("unexpected error: %v", err)
-		JSONError(w, http.StatusInternalServerError, "Internal server error")
+		JSONError(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
 	}
 }
 
-func JSONError(w http.ResponseWriter, statusCode int, err string) {
+func JSONError(w http.ResponseWriter, statusCode int, err domain.ErrorResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]string{
-		"error": err,
-	})
+	json.NewEncoder(w).Encode(err)
 }

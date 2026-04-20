@@ -15,7 +15,7 @@ func RunMigrations(cmd string, version int) error {
 		return errors.New("MIGRATION_DB_URL is required")
 	}
 
-	m, err := migrate.New("file://migrations", connStr)
+	m, err := migrate.New("file://../migrations", connStr)
 	if err != nil {
 		return err
 	}
