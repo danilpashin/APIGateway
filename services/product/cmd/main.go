@@ -9,6 +9,7 @@ import (
 	"apigateway/services/product/internal/service"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -85,6 +86,7 @@ func newRouter(db *sql.DB) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.PanicRecoveryMiddleware)
 	r.Use(middleware.LoggingMiddleware)
+	r.Get("/health", healthHandler(db))
 	r.Post("/products", productHandler.CreateProductHandler)
 	r.Put("/products/{id}", productHandler.UpdateProductHandler)
 	r.Get("/products/{id}", productHandler.GetProductHandler)
@@ -92,6 +94,25 @@ func newRouter(db *sql.DB) *chi.Mux {
 	r.Delete("/products/{id}", productHandler.DeleteProductHandler)
 
 	return r
+}
+
+func initDB() *sql.DB {
+	connStr := env.GetEnv("APP_DB_URL")
+	if connStr == "" {
+		log.Fatalf("APP_DB_URL is required")
+	}
+
+	db, err := database.NewDB(connStr)
+	if err != nil {
+		log.Fatalf("Failed to connect DB: %v", err)
+	}
+
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Failed to ping DB: %v", err)
+	}
+	log.Print("Database connected")
+
+	return db
 }
 
 func gracefulShutdown(srv *http.Server, db *sql.DB) {
@@ -115,21 +136,16 @@ func gracefulShutdown(srv *http.Server, db *sql.DB) {
 	log.Print("Server exit")
 }
 
-func initDB() *sql.DB {
-	connStr := env.GetEnv("APP_DB_URL")
-	if connStr == "" {
-		log.Fatalf("APP_DB_URL is required")
-	}
+func healthHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		if err := db.Ping(); err != nil {
+			http.Error(w, "DB not ready", http.StatusServiceUnavailable)
+			return
+		}
 
-	db, err := database.NewDB(connStr)
-	if err != nil {
-		log.Fatalf("Failed to connect DB: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
-
-	if err = db.Ping(); err != nil {
-		log.Fatalf("Failed to ping DB: %v", err)
-	}
-	log.Print("Database connected")
-
-	return db
 }

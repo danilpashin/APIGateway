@@ -9,6 +9,7 @@ import (
 	"apigateway/services/user/internal/service"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -85,6 +86,7 @@ func newRouter(db *sql.DB) *chi.Mux {
 	userHandler := handler.NewUserHandler(*userService)
 
 	r.Use(middleware.LoggingMiddleware)
+	r.Get("/health", healthHandler(db))
 	r.Get("/users", userHandler.CheckHandler)
 
 	return r
@@ -128,4 +130,18 @@ func gracefulShutdown(srv *http.Server, db *sql.DB) {
 	}
 
 	log.Print("Server exit")
+}
+
+func healthHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		if err := db.Ping(); err != nil {
+			http.Error(w, "DB not ready", http.StatusServiceUnavailable)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	}
 }
