@@ -159,31 +159,31 @@ func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Req
 func (h *ProductHandler) handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, domain.ErrProductsNotFound):
-		JSONError(w, http.StatusNotFound, domain.ErrorResponse{Error: domain.ErrProductsNotFound.Error()})
+		JSONError(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrProductExist):
-		JSONError(w, http.StatusConflict, domain.ErrorResponse{Error: domain.ErrProductExist.Error()})
+		JSONError(w, http.StatusConflict, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrInvalidJSON):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidJSON.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrIDRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrIDRequired.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrInvalidID):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidID.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrInvalidCursor):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidCursor.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrInvalidLimit):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidLimit.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrListQuery):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrListQuery.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	case errors.Is(err, domain.ErrNoUpdateData):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrNoUpdateData.Error()})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
 
 	default:
 		JSONError(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
