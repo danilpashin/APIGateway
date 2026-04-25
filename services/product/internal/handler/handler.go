@@ -6,6 +6,7 @@ import (
 	"apigateway/services/product/internal/validator"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"pkg/response"
 	"strconv"
@@ -31,8 +32,8 @@ func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if err = validator.New(req); err != nil {
-		errResp := domain.ErrorResponse{Error: "validation error", Details: response.FormatValidationError(err)}
-		JSONError(w, 400, errResp)
+		errResp := domain.ErrorResponse{Message: "validation error", Details: response.FormatValidationError(err)}
+		h.handleError(w, errResp)
 		return
 	}
 
@@ -157,37 +158,56 @@ func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (h *ProductHandler) handleError(w http.ResponseWriter, err error) {
+	var statusCode int
+	var errResp domain.ErrorResponse
+
 	switch {
+	case errors.As(err, &errResp):
+		statusCode = http.StatusBadRequest
+
 	case errors.Is(err, domain.ErrProductsNotFound):
-		JSONError(w, http.StatusNotFound, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusNotFound
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrProductExist):
-		JSONError(w, http.StatusConflict, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusConflict
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrInvalidJSON):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrIDRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrInvalidID):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrInvalidCursor):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrInvalidLimit):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrListQuery):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrNoUpdateData):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: err.Error()})
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	default:
-		JSONError(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})
+		statusCode = http.StatusInternalServerError
+		errResp = domain.ErrorResponse{Message: "internal server error"}
+		log.Printf("unexpected error: %v", err)
 	}
+
+	JSONError(w, statusCode, errResp)
 }
 
 func JSONError(w http.ResponseWriter, statusCode int, err domain.ErrorResponse) {

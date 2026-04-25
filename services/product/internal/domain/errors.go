@@ -35,6 +35,10 @@ var (
 )
 
 type ErrorResponse struct {
-	Error   string            `json:"error"`
+	Message string            `json:"error"`
 	Details map[string]string `json:"details,omitempty"`
+}
+
+func (e ErrorResponse) Error() string {
+	return e.Message
 }
