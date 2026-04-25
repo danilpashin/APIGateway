@@ -2,6 +2,7 @@ package service
 
 import (
 	"apigateway/services/product/internal/domain"
+	"apigateway/services/product/internal/helpers/regex"
 	"apigateway/services/product/internal/repository/postgres"
 	"context"
 	"errors"
@@ -49,32 +50,39 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 	updateData := make(map[string]interface{}, 0)
 
 	if req.Name != nil {
-		if *req.Name == "" {
-			return nil, errors.New("name cannot be empty")
+		err := regex.ValidateProductName(*req.Name)
+		if err != nil {
+			return nil, err
 		}
 		updateData["name"] = *req.Name
 	}
 	if req.Manufacturer != nil {
 		if *req.Manufacturer == "" {
-			return nil, errors.New("manufacturer cannot be empty")
+			return nil, domain.ErrInvalidManufacturer
 		}
 		updateData["manufacturer"] = *req.Manufacturer
 	}
 	if req.Amount != nil {
-		if *req.Amount <= 0 {
-			return nil, errors.New("amount must be positive")
+		if *req.Amount < 0 {
+			return nil, domain.ErrInvalidAmount
 		}
 		updateData["amount"] = *req.Amount
 	}
 	if req.Price != nil {
 		if *req.Price <= 0 {
-			return nil, errors.New("price must be positive")
+			return nil, domain.ErrInvalidPrice
+		}
+		updateData["price"] = *req.Price
+	}
+	if req.Category != nil {
+		if *req.Category == "" {
+			return nil, domain.ErrInvalidPrice
 		}
 		updateData["price"] = *req.Price
 	}
 
 	if len(updateData) == 0 {
-		return nil, errors.New("no updates were set")
+		return nil, domain.ErrNoUpdatesProvided
 	}
 
 	updateData["updated_at"] = time.Now()
@@ -84,13 +92,13 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 
 func (s *ProductService) GetProduct(ctx context.Context, id int) (*domain.Product, error) {
 	if id <= 0 {
-		return nil, errors.New("id must be positive")
+		return nil, domain.ErrInvalidID
 	}
 
 	return s.repo.GetProduct(ctx, id)
 }
 
-func (s *ProductService) ListProducts(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, error) {
+func (s *ProductService) ListProducts(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, *domain.Pagination, error) {
 	if cursor < 0 {
 		cursor = 0
 	}
@@ -100,12 +108,17 @@ func (s *ProductService) ListProducts(ctx context.Context, cursor int, limit uin
 		limit = 50
 	}
 
-	return s.repo.ListProducts(ctx, cursor, limit)
+	listProducts, nextCursor, hasMore, err := s.repo.ListProducts(ctx, cursor, limit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return listProducts, &domain.Pagination{NextCursor: nextCursor, HasMore: hasMore, Limit: limit}, nil
 }
 
 func (s *ProductService) DeleteProduct(ctx context.Context, id int) error {
 	if id <= 0 {
-		return errors.New("id must be positive")
+		return domain.ErrInvalidID
 	}
 
 	return s.repo.DeleteProduct(ctx, id)

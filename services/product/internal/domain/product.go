@@ -87,6 +87,13 @@ type ListProductsRequest struct {
 }
 
 type ListProductsResponse struct {
-	Products []*Product
-	Total    int
+	Products         []*Product  `json:"data"`
+	PaginationParams *Pagination `json:"pagination"`
+	Total            int         `json:"total"`
+}
+
+type Pagination struct {
+	NextCursor int    `json:"next_cursor"`
+	HasMore    bool   `json:"has_more"`
+	Limit      uint64 `json:"limit"`
 }

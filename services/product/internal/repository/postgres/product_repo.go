@@ -56,12 +56,15 @@ func (r *ProductRepository) UpdateProduct(ctx context.Context, id int, updateDat
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, errors.New("invalid update query")
+		return nil, domain.ErrUpdateQuery
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args).
 		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrProductsNotFound
+		}
 		return nil, err
 	}
 	log.Printf("Product name is %s, updated on %s\n", product.Name, product.UpdatedAt)
@@ -75,7 +78,7 @@ func (r *ProductRepository) GetProduct(ctx context.Context, id int) (*domain.Pro
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, errors.New("invalid get query")
+		return nil, domain.ErrGetQuery
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).
@@ -87,38 +90,52 @@ func (r *ProductRepository) GetProduct(ctx context.Context, id int) (*domain.Pro
 	return &product, nil
 }
 
-func (r *ProductRepository) ListProducts(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, error) {
+func (r *ProductRepository) ListProducts(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, int, bool, error) {
 	listProducts := make([]*domain.Product, 0)
 
 	builder := squirrel.Select("*").From("products").
-		Where(squirrel.Gt{"id": cursor}).Limit(limit).OrderBy("id ASC").
+		Where(squirrel.Gt{"id": cursor}).Limit(limit + 1).OrderBy("id ASC").
 		PlaceholderFormat(squirrel.Dollar)
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, errors.New("invalid get list query")
+		return nil, 0, false, domain.ErrListQuery
 	}
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, errors.New("error during the query")
+		return nil, 0, false, fmt.Errorf("query failed: %v", err)
 	}
 
 	for rows.Next() {
 		product := new(domain.Product)
 		err = rows.Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("scan error: %w", err)
+			return nil, 0, false, fmt.Errorf("scan failed: %w", err)
 		}
 		listProducts = append(listProducts, product)
 	}
 	defer rows.Close()
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, false, err
 	}
 
-	return listProducts, nil
+	var products []*domain.Product
+	var nextCursor int
+	var hasMore bool
+
+	if len(listProducts) > int(limit) {
+		nextCursor = listProducts[len(listProducts)-1].ID
+		hasMore = true
+		products = listProducts[:limit]
+	} else {
+		nextCursor = 0
+		hasMore = false
+		products = listProducts
+	}
+
+	return products, nextCursor, hasMore, nil
 }
 
 func (r *ProductRepository) DeleteProduct(ctx context.Context, id int) error {
@@ -126,7 +143,7 @@ func (r *ProductRepository) DeleteProduct(ctx context.Context, id int) error {
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return errors.New("invalid delete query")
+		return domain.ErrDeleteQuery
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).Scan()
