@@ -90,7 +90,7 @@ var testsCreate = []TestCreate{
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
 		wantStatus: 409,
-		wantResp:   domain.ErrorResponse{Error: "product already exists"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrProductExist.Error()},
 	},
 	{
 		name:       "no values",
@@ -101,12 +101,12 @@ var testsCreate = []TestCreate{
 		wantResp:   domain.ErrorResponse{Error: "validation error", Details: map[string]string{"Amount": "this field is required", "Category": "this field is required", "Manufacturer": "this field is required", "Name": "this field is required", "Price": "this field is required"}},
 	},
 	{
-		name:       "invalid status",
+		name:       "invalid status value",
 		product:    nil,
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": 5123, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
-		wantStatus: 500,
-		wantResp:   domain.ErrorResponse{Error: "internal server error"},
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidJSON.Error()},
 	},
 }
 
@@ -118,6 +118,7 @@ func TestCreateProductHandler(t *testing.T) {
 					if test.wantStatus == 409 {
 						return nil, domain.ErrProductExist
 					}
+
 					return test.product, nil
 				},
 			}
@@ -200,21 +201,48 @@ var testsUpdate = []TestUpdate{
 	},
 	{
 		name:       "product does not exist",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		product:    &domain.Product{ID: 1},
 		productID:  "2",
 		req:        `{"name": "Laptop HUAWEI D16 2025", "manufacturer": "HUAWEI", "price": 65999, "amount": 21, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
 		wantStatus: 404,
-		wantResp:   domain.ErrorResponse{Error: "product(s) not found"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrProductsNotFound.Error()},
 	},
 	{
 		name:       "no update data",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		product:    nil,
 		productID:  "1",
 		req:        `{}`,
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   domain.ErrorResponse{Error: "no updates provided"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrNoUpdateData.Error()},
+	},
+	{
+		name:       "invalid request",
+		product:    nil,
+		productID:  "1",
+		req:        `1{-&{(}}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidJSON.Error()},
+	},
+	{
+		name:       "invalid id",
+		product:    nil,
+		productID:  "-1.5",
+		req:        `{}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidID.Error()},
+	},
+	{
+		name:       "no id provided",
+		product:    nil,
+		productID:  "",
+		req:        `{}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrIDRequired.Error()},
 	},
 }
 
@@ -226,6 +254,7 @@ func TestUpdateProductHandler(t *testing.T) {
 					if id == test.product.ID {
 						return test.product, nil
 					}
+
 					return nil, domain.ErrProductsNotFound
 				},
 			}
@@ -302,21 +331,30 @@ var testsGet = []TestGet{
 	},
 	{
 		name:       "product not found",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		product:    &domain.Product{ID: 1},
 		productID:  "2",
 		url:        "/products/2",
 		wantErr:    true,
 		wantStatus: 404,
-		wantResp:   domain.ErrorResponse{Error: "product(s) not found"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrProductsNotFound.Error()},
 	},
 	{
 		name:       "no id provided",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		product:    nil,
 		productID:  "",
 		url:        "/products/",
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   domain.ErrorResponse{Error: "id is required"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrIDRequired.Error()},
+	},
+	{
+		name:       "invalid id",
+		product:    nil,
+		productID:  "-1.5",
+		url:        "/products/-1.5",
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidID.Error()},
 	},
 }
 
@@ -453,6 +491,40 @@ var testsList = []TestList{
 		wantStatus:     200,
 		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 1},
 	},
+	{
+		name: "empty cursor and limit",
+		products: []*domain.Product{
+			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
+		},
+		url:            "/products",
+		wantErr:        false,
+		wantStatus:     200,
+		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 10},
+	},
+	{
+		name:       "invalid cursor",
+		products:   []*domain.Product{},
+		url:        "/products?cursor=a",
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidCursor.Error()},
+	},
+	{
+		name:       "invalid limit",
+		products:   []*domain.Product{},
+		url:        "/products?limit=a",
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidLimit.Error()},
+	},
+	{
+		name:       "error list query",
+		products:   []*domain.Product{},
+		url:        "/products",
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrListQuery.Error()},
+	},
 }
 
 func TestListProductsHandler(t *testing.T) {
@@ -460,6 +532,10 @@ func TestListProductsHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				listProducts: func(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, int, bool, error) {
+					if test.name == "error list query" {
+						return nil, 0, false, domain.ErrListQuery
+					}
+
 					listProducts := make([]*domain.Product, 0, limit+1)
 
 					currSize := 0
@@ -573,15 +649,23 @@ var testsDelete = []TestDelete{
 		productID:  "2",
 		wantErr:    true,
 		wantStatus: 404,
-		wantResp:   domain.ErrorResponse{Error: "product(s) not found"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrProductsNotFound.Error()},
 	},
 	{
-		name:       "no id",
+		name:       "no id provided",
 		url:        "/products/{id}",
 		productID:  "",
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   domain.ErrorResponse{Error: "id is required"},
+		wantResp:   domain.ErrorResponse{Error: domain.ErrIDRequired.Error()},
+	},
+	{
+		name:       "invalid id",
+		url:        "/products/{id}",
+		productID:  "a",
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   domain.ErrorResponse{Error: domain.ErrInvalidID.Error()},
 	},
 }
 
@@ -590,7 +674,7 @@ func TestDeleteProductHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				deleteProduct: func(ctx context.Context, id int) error {
-					if test.productID == "2" {
+					if test.name == "no product" {
 						return domain.ErrProductsNotFound
 					}
 					return nil

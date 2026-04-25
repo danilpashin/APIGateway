@@ -5,7 +5,6 @@ import (
 	"apigateway/services/product/internal/helpers/regex"
 	"apigateway/services/product/internal/repository/postgres"
 	"context"
-	"errors"
 	"time"
 )
 
@@ -21,6 +20,10 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *domain.CreatePr
 	insertData := make(map[string]interface{}, 0)
 
 	if req.Name != "" {
+		err := regex.ValidateProductName(req.Name)
+		if err != nil {
+			return nil, domain.ErrInvalidName
+		}
 		insertData["name"] = req.Name
 	}
 	if req.Manufacturer != "" {
@@ -34,13 +37,11 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *domain.CreatePr
 	}
 	if req.Status {
 		insertData["status"] = req.Status
+	} else {
+		insertData["status"] = true
 	}
 	if req.Category != "" {
 		insertData["category"] = req.Category
-	}
-
-	if len(insertData) == 0 {
-		return nil, errors.New("empty insert data")
 	}
 
 	return s.repo.CreateProduct(ctx, insertData)
@@ -82,7 +83,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 	}
 
 	if len(updateData) == 0 {
-		return nil, domain.ErrNoUpdatesProvided
+		return nil, domain.ErrNoUpdateData
 	}
 
 	updateData["updated_at"] = time.Now()

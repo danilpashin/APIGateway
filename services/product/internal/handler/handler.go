@@ -26,7 +26,7 @@ func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Req
 	var req domain.CreateProductRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(w, domain.ErrInvalidJSON)
 		return
 	}
 
@@ -57,17 +57,17 @@ func (h *ProductHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Req
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		h.handleError(w, domain.ErrInvalidID)
+		return
 	}
 
 	var req *domain.UpdateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.handleError(w, err)
+		h.handleError(w, domain.ErrInvalidJSON)
 		return
 	}
 
 	product, err := h.productService.UpdateProduct(r.Context(), idInt, req)
 	if err != nil {
-		// JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "update error", Details: map[string]string{"error": err.Error()}})
 		h.handleError(w, err)
 		return
 	}
@@ -91,11 +91,6 @@ func (h *ProductHandler) GetProductHandler(w http.ResponseWriter, r *http.Reques
 
 	product, err := h.productService.GetProduct(r.Context(), idInt)
 	if err != nil {
-		h.handleError(w, err)
-		return
-	}
-
-	if product == nil {
 		h.handleError(w, err)
 		return
 	}
@@ -164,37 +159,31 @@ func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Req
 func (h *ProductHandler) handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, domain.ErrProductsNotFound):
-		JSONError(w, http.StatusNotFound, domain.ErrorResponse{Error: "product(s) not found"})
+		JSONError(w, http.StatusNotFound, domain.ErrorResponse{Error: domain.ErrProductsNotFound.Error()})
 
 	case errors.Is(err, domain.ErrProductExist):
-		JSONError(w, http.StatusConflict, domain.ErrorResponse{Error: "product already exists"})
-
-	case errors.Is(err, domain.ErrForbidden):
-		JSONError(w, http.StatusForbidden, domain.ErrorResponse{Error: "forbidden"})
+		JSONError(w, http.StatusConflict, domain.ErrorResponse{Error: domain.ErrProductExist.Error()})
 
 	case errors.Is(err, domain.ErrInvalidJSON):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "invalid JSON"})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidJSON.Error()})
 
 	case errors.Is(err, domain.ErrIDRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "id is required"})
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrIDRequired.Error()})
 
-	case errors.Is(err, domain.ErrNameRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "name is required"})
+	case errors.Is(err, domain.ErrInvalidID):
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidID.Error()})
 
-	case errors.Is(err, domain.ErrManufacturerRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "manufacturer is required"})
+	case errors.Is(err, domain.ErrInvalidCursor):
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidCursor.Error()})
 
-	case errors.Is(err, domain.ErrPriceRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "price is required"})
+	case errors.Is(err, domain.ErrInvalidLimit):
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrInvalidLimit.Error()})
 
-	case errors.Is(err, domain.ErrAmountRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "amount is required"})
+	case errors.Is(err, domain.ErrListQuery):
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrListQuery.Error()})
 
-	case errors.Is(err, domain.ErrCategoryRequired):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "category is required"})
-
-	case errors.Is(err, domain.ErrNoUpdatesProvided):
-		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: "no updates provided"})
+	case errors.Is(err, domain.ErrNoUpdateData):
+		JSONError(w, http.StatusBadRequest, domain.ErrorResponse{Error: domain.ErrNoUpdateData.Error()})
 
 	default:
 		JSONError(w, http.StatusInternalServerError, domain.ErrorResponse{Error: "internal server error"})

@@ -7,12 +7,7 @@ var (
 	ErrProductExist     = errors.New("product already exists")
 
 	// required values
-	ErrIDRequired           = errors.New("id is required")
-	ErrNameRequired         = errors.New("name is required")
-	ErrManufacturerRequired = errors.New("manufacturer is required")
-	ErrPriceRequired        = errors.New("price is required")
-	ErrAmountRequired       = errors.New("amount is required")
-	ErrCategoryRequired     = errors.New("category is required")
+	ErrIDRequired = errors.New("id is required")
 
 	// invalid values
 	ErrInvalidID           = errors.New("id must be a number greater than 0")
@@ -24,7 +19,7 @@ var (
 	ErrInvalidCursor       = errors.New("cursor is not a number")
 	ErrInvalidLimit        = errors.New("limit is not a number")
 
-	ErrNoUpdatesProvided = errors.New("no updates provided")
+	ErrNoUpdateData = errors.New("no updates provided")
 
 	// query
 	ErrQuery       = errors.New("error during the query")
@@ -37,8 +32,6 @@ var (
 	// general
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrInvalidJSON  = errors.New("invalid JSON")
-	ErrForbidden    = errors.New("forbidden")
-	ErrBadRequest   = errors.New("bad request")
 )
 
 type ErrorResponse struct {
