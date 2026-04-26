@@ -34,5 +34,5 @@ func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserReque
 		insertData["password_hash"] = passwordHash
 	}
 
-	return nil, nil
+	return s.repo.CreateUser(ctx, insertData)
 }
