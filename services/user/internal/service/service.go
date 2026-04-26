@@ -10,10 +10,10 @@ import (
 )
 
 type UserService struct {
-	repo postgres.UserRepository
+	repo postgres.UserRepoInterface
 }
 
-func NewUserService(repo postgres.UserRepository) *UserService {
+func NewUserService(repo postgres.UserRepoInterface) *UserService {
 	return &UserService{repo: repo}
 }
 
@@ -32,6 +32,10 @@ func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserReque
 			return nil, errors.New("failed to generate password hash")
 		}
 		insertData["password_hash"] = passwordHash
+	}
+
+	if len(insertData) < 3 {
+		return nil, errors.New("insert data is empty or not enough")
 	}
 
 	return s.repo.CreateUser(ctx, insertData)
