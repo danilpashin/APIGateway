@@ -41,3 +41,5 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {}

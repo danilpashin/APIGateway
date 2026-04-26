@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type MockUserRepo struct {
@@ -132,6 +134,92 @@ func TestCreateUser(t *testing.T) {
 
 				if !reflect.DeepEqual(resp, test.resp) {
 					t.Fatalf("expected %v, got: %v", test.resp, resp)
+				}
+
+				if w.Code != test.wantStatus {
+					t.Fatalf("expected %d, got: %d", test.wantStatus, w.Code)
+				}
+			}
+		})
+	}
+}
+
+type TestUpdate struct {
+	name       string
+	user       *domain.User
+	userID     string
+	req        string
+	resp       *domain.UpdateUserResponse
+	wantErr    bool
+	wantStatus int
+	wantResp   string
+}
+
+var testsUpdate = []TestUpdate{
+	{
+		name:       "general",
+		user:       &domain.User{ID: 1, Username: "Danil132", Email: "rvn243@gmail.com", PasswordHash: "$2a$10$nqFp/wGlchdjqATC22vgguUXzY.lXUoyizMsYeD8GjpG48bBk5tpe", Role: "user"},
+		userID:     "1",
+		req:        `{"username":"sad31fd", "email":"another_email@mail.ru", "old_password":"12345678", "password":"new_password123"}`,
+		resp:       &domain.UpdateUserResponse{Username: "sad31fd", Email: "another_email@mail.ru"},
+		wantErr:    false,
+		wantStatus: 200,
+	},
+	{
+		name:       "invalid JSON",
+		user:       nil,
+		userID:     "0",
+		req:        `2{dfg{(}Ac2d:}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   "invalid JSON\n",
+	},
+}
+
+func TestUpdateUser(t *testing.T) {
+	for _, test := range testsUpdate {
+		t.Run(test.name, func(t *testing.T) {
+			mockRepo := MockUserRepo{
+				updateUser: func(ctx context.Context, id int, updateData map[string]interface{}) (*domain.User, error) {
+					return test.user, nil
+				},
+			}
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("PUT", "/users/{id}", strings.NewReader(test.req))
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", test.userID)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+			userService := service.NewUserService(&mockRepo)
+			userHandler := NewUserHandler(*userService)
+
+			userHandler.UpdateUser(w, req)
+
+			if test.wantErr {
+				bodyBytes, err := io.ReadAll(w.Body)
+				if err != nil {
+					t.Fatal("failed to read w.Body: ", err)
+				}
+
+				got := string(bodyBytes)
+				if !strings.EqualFold(got, test.wantResp) {
+					t.Fatalf("expected %s, got: %s", test.wantResp, got)
+				}
+
+				if w.Code != test.wantStatus {
+					t.Fatalf("expected %d, got: %d", test.wantStatus, w.Code)
+				}
+			} else {
+				var resp domain.UpdateUserResponse
+				err := json.NewDecoder(w.Body).Decode(&resp)
+				if err != nil {
+					t.Fatal("failed to decode w.Body: ", err)
+				}
+
+				if !reflect.DeepEqual(resp, test.user) {
+					t.Fatalf("expected %v, got: %v", test.user, resp)
 				}
 
 				if w.Code != test.wantStatus {
