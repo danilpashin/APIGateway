@@ -2,7 +2,14 @@ package handler
 
 import (
 	"apigateway/services/user/internal/domain"
+	"apigateway/services/user/internal/service"
 	"context"
+	"encoding/json"
+	"io"
+	"net/http/httptest"
+	"reflect"
+	"strings"
+	"testing"
 )
 
 type MockUserRepo struct {
@@ -46,4 +53,91 @@ func (m *MockUserRepo) DeleteUser(ctx context.Context, id int) error {
 		return m.deleteUser(ctx, id)
 	}
 	return nil
+}
+
+type TestCreate struct {
+	name       string
+	user       *domain.User
+	req        string
+	resp       *domain.CreateUserResponse
+	wantErr    bool
+	wantStatus int
+	wantResp   string
+}
+
+var testsCreate = []TestCreate{
+	{
+		name:       "general",
+		user:       &domain.User{ID: 1, Username: "Danil132", Email: "rvn243@gmail.com", PasswordHash: "", Role: "user"},
+		req:        `{"username":"Danil132", "email":"rvn243@gmail.com", "password":"test"}`,
+		resp:       &domain.CreateUserResponse{Username: "Danil132", Email: "rvn243@gmail.com"},
+		wantErr:    false,
+		wantStatus: 201,
+	},
+	{
+		name:       "empty insert data",
+		user:       nil,
+		req:        `{"username":"", "email":"", "password":""}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   "insert data is empty or not enough\n",
+	},
+	{
+		name:       "invalid JSON request",
+		user:       nil,
+		req:        `!{s"d username"2:"", "email":""fj, "password":""(}`,
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   "invalid JSON\n",
+	},
+}
+
+func TestCreateUser(t *testing.T) {
+	for _, test := range testsCreate {
+		t.Run(test.name, func(t *testing.T) {
+			mockRepo := MockUserRepo{
+				createUser: func(ctx context.Context, insertData map[string]interface{}) (*domain.User, error) {
+					return test.user, nil
+				},
+			}
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("POST", "/users/register", strings.NewReader(test.req))
+
+			userService := service.NewUserService(&mockRepo)
+			userHandler := NewUserHandler(*userService)
+
+			userHandler.CreateUser(w, req)
+
+			if test.wantErr {
+				bodyBytes, err := io.ReadAll(w.Body)
+				if err != nil {
+					t.Fatal("failed to read w.Body: ", err)
+				}
+
+				got := string(bodyBytes)
+				if !strings.EqualFold(got, test.wantResp) {
+					t.Fatalf("expected %v, got: %v", test.wantResp, got)
+				}
+
+				if w.Code != test.wantStatus {
+					t.Fatalf("expected %d, got: %d", test.wantStatus, w.Code)
+				}
+			} else {
+				var resp *domain.CreateUserResponse
+				err := json.NewDecoder(w.Body).Decode(&resp)
+				if err != nil {
+					t.Fatal("failed to decode w.Body: ", err)
+				}
+
+				if !reflect.DeepEqual(resp, test.resp) {
+					t.Fatalf("expected %v, got: %v", test.resp, resp)
+				}
+
+				if w.Code != test.wantStatus {
+					t.Fatalf("expected %d, got: %d", test.wantStatus, w.Code)
+				}
+			}
+		})
+	}
 }
