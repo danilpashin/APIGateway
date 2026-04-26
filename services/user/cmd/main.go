@@ -82,7 +82,7 @@ func newRouter(db *sql.DB) *chi.Mux {
 	r := chi.NewRouter()
 
 	userRepo := postgres.NewUserRepository(db)
-	userService := service.NewUserService(*userRepo)
+	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(*userService)
 
 	r.Use(middleware.LoggingMiddleware)
