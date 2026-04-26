@@ -44,8 +44,8 @@ func (r *UserRepository) GetUser(ctx context.Context, id int) (*domain.User, err
 	return nil, nil
 }
 
-func (r *UserRepository) ListUsers(ctx context.Context, cursor int, limit uint64) ([]*domain.User, error) {
-	return nil, nil
+func (r *UserRepository) ListUsers(ctx context.Context, cursor int, limit uint64) ([]*domain.User, int, bool, error) {
+	return nil, 0, false, nil
 }
 
 func (r *UserRepository) DeleteUser(ctx context.Context, id int) error {
