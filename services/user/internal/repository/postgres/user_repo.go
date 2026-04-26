@@ -37,6 +37,22 @@ func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]i
 }
 
 func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[string]interface{}) (*domain.User, error) {
+	var user domain.User
+	builder := squirrel.Update("users").SetMap(updateData).Where(squirrel.Eq{"id": id}).Suffix(`RETURNING id, username, email, password_hash, (SELECT name FROM roles WHERE id = 1) AS role_name, created_at, updated_at`)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, errors.New("failed update query build")
+	}
+
+	err = r.db.QueryRowContext(ctx, query, args...).Scan(&user.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
 	return nil, nil
 }
 
