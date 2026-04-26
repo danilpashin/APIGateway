@@ -25,3 +25,15 @@ type CreateUserResponse struct {
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+// ===== UPDATE =====
+type UpdateUserRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UpdateUserResponse struct {
+	Username string
+	Email    string
+}
