@@ -9,11 +9,11 @@ import (
 )
 
 type UserHandler struct {
-	userService service.UserService
+	service service.UserService
 }
 
 func NewUserHandler(service service.UserService) *UserHandler {
-	return &UserHandler{userService: service}
+	return &UserHandler{service: service}
 }
 
 func (h *UserHandler) CheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.CreateUser(context.Background(), req)
+	user, err := h.service.CreateUser(context.Background(), req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
