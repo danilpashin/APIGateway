@@ -142,7 +142,7 @@ func TestCreateProductHandler(t *testing.T) {
 			productService := service.NewProductService(&mockRepo)
 			productHandler := NewProductHandler(*productService)
 
-			productHandler.CreateProductHandler(w, req)
+			productHandler.CreateProduct(w, req)
 
 			if test.wantErr {
 				var errResp domain.ErrorResponse
@@ -296,7 +296,7 @@ func TestUpdateProductHandler(t *testing.T) {
 			productService := service.NewProductService(&mockRepo)
 			productHandler := NewProductHandler(*productService)
 
-			productHandler.UpdateProductHandler(w, req)
+			productHandler.UpdateProduct(w, req)
 
 			if test.wantErr {
 				var errResp domain.ErrorResponse
@@ -420,7 +420,7 @@ func TestGetProductHandler(t *testing.T) {
 
 			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
-			productHandler.GetProductHandler(w, req)
+			productHandler.GetProduct(w, req)
 
 			if test.wantErr {
 				var errResp domain.ErrorResponse
@@ -623,7 +623,7 @@ func TestListProductsHandler(t *testing.T) {
 			productService := service.NewProductService(&mockRepo)
 			productHandler := NewProductHandler(*productService)
 
-			productHandler.ListProductsHandler(w, req)
+			productHandler.ListProducts(w, req)
 
 			if test.wantErr {
 				var errResp domain.ErrorResponse
@@ -754,7 +754,7 @@ func TestDeleteProductHandler(t *testing.T) {
 			productService := service.NewProductService(&mockRepo)
 			productHandler := NewProductHandler(*productService)
 
-			productHandler.DeleteProductHandler(w, req)
+			productHandler.DeleteProduct(w, req)
 
 			if test.wantErr {
 				var errResp domain.ErrorResponse

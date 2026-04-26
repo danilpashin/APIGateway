@@ -22,7 +22,7 @@ func NewProductHandler(productService service.ProductService) *ProductHandler {
 	return &ProductHandler{productService: productService}
 }
 
-func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var req domain.CreateProductRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -48,7 +48,7 @@ func (h *ProductHandler) CreateProductHandler(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProductHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -78,7 +78,7 @@ func (h *ProductHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProductHandler) GetProductHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -101,7 +101,7 @@ func (h *ProductHandler) GetProductHandler(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(product)
 }
 
-func (h *ProductHandler) ListProductsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	cursor := r.URL.Query().Get("cursor")
 	if cursor == "" {
@@ -135,7 +135,7 @@ func (h *ProductHandler) ListProductsHandler(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(listProductsResponse)
 }
 
-func (h *ProductHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	id := chi.URLParam(r, "id")
 	if id == "" {

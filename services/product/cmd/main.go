@@ -87,11 +87,11 @@ func newRouter(db *sql.DB) *chi.Mux {
 	r.Use(middleware.PanicRecoveryMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 	r.Get("/health", healthHandler(db))
-	r.Post("/products", productHandler.CreateProductHandler)
-	r.Put("/products/{id}", productHandler.UpdateProductHandler)
-	r.Get("/products/{id}", productHandler.GetProductHandler)
-	r.Get("/products", productHandler.ListProductsHandler)
-	r.Delete("/products/{id}", productHandler.DeleteProductHandler)
+	r.Post("/products", productHandler.CreateProduct)
+	r.Put("/products/{id}", productHandler.UpdateProduct)
+	r.Get("/products/{id}", productHandler.GetProduct)
+	r.Get("/products", productHandler.ListProducts)
+	r.Delete("/products/{id}", productHandler.DeleteProduct)
 
 	return r
 }
