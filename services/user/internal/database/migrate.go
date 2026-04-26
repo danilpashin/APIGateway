@@ -9,7 +9,7 @@ import (
 )
 
 func RunMigrations(cmd string, version int) error {
-	log.Printf("Running migration: %s (version: %d)", cmd, version)
+	log.Printf("Running migration: %s", cmd)
 	connStr := env.GetEnv("MIGRATION_DB_URL")
 	if connStr == "" {
 		return errors.New("MIGRATION_DB_URL is required")
@@ -17,9 +17,6 @@ func RunMigrations(cmd string, version int) error {
 
 	m, err := migrate.New("file://migrations", connStr)
 	if err != nil {
-		return err
-	}
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 
@@ -30,7 +27,7 @@ func RunMigrations(cmd string, version int) error {
 		}
 		log.Print("Applied all pending migrations")
 	case "down":
-		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+		if err := m.Steps(-1); err != nil && err != migrate.ErrNoChange {
 			return err
 		}
 		log.Println("Rolled back last migration")
