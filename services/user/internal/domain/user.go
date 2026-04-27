@@ -35,6 +35,14 @@ type UpdateUserRequest struct {
 }
 
 type UpdateUserResponse struct {
-	Username string
-	Email    string
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+// ===== GET =====
+type GetUserRequest struct{}
+
+type GetUserResponse struct {
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
 }
