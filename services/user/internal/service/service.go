@@ -78,3 +78,11 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateU
 
 	return s.repo.UpdateUser(ctx, id, updateData)
 }
+
+func (s *UserService) GetUser(ctx context.Context, id int) (*domain.User, error) {
+	if id <= 0 {
+		return nil, errors.New("invalid id")
+	}
+
+	return s.repo.GetUser(ctx, id)
+}
