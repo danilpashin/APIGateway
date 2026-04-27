@@ -17,7 +17,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]interface{}) (*domain.User, error) {
+func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]any) (*domain.User, error) {
 	var user domain.User
 	builder := squirrel.Insert("users").
 		SetMap(insertData).
@@ -36,7 +36,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]i
 	return &user, nil
 }
 
-func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[string]interface{}) (*domain.User, error) {
+func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[string]any) (*domain.User, error) {
 	var user domain.User
 	var role_id int
 	builder := squirrel.Update("users").SetMap(updateData).Where(squirrel.Eq{"id": id}).Suffix(`RETURNING id, username, email, password_hash, role_id, created_at, updated_at`)

@@ -181,6 +181,16 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockUserRepo{
 				updateUser: func(ctx context.Context, id int, updateData map[string]any) (*domain.User, error) {
+					username := updateData["username"].(string)
+					email := updateData["email"].(string)
+					passwordHash := updateData["password_hash"].([]byte)
+					test.user.Username = username
+					test.user.Email = email
+					test.user.PasswordHash = string(passwordHash)
+
+					return test.user, nil
+				},
+				getUser: func(ctx context.Context, id int) (*domain.User, error) {
 					return test.user, nil
 				},
 			}
@@ -218,8 +228,8 @@ func TestUpdateUser(t *testing.T) {
 					t.Fatal("failed to decode w.Body: ", err)
 				}
 
-				if !reflect.DeepEqual(resp, test.user) {
-					t.Fatalf("expected %v, got: %v", test.user, resp)
+				if !reflect.DeepEqual(&resp, test.resp) {
+					t.Fatalf("expected %v, got: %v", test.resp, &resp)
 				}
 
 				if w.Code != test.wantStatus {
