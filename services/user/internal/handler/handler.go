@@ -3,9 +3,11 @@ package handler
 import (
 	"apigateway/services/user/internal/domain"
 	"apigateway/services/user/internal/service"
-	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UserHandler struct {
@@ -29,7 +31,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.CreateUser(context.Background(), req)
+	user, err := h.service.CreateUser(r.Context(), req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -42,4 +44,35 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {}
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "empty id", http.StatusBadRequest)
+		return
+	}
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var req domain.UpdateUserRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.service.UpdateUser(r.Context(), idInt, req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	resp := domain.UpdateUserResponse{Username: user.Username, Email: user.Email}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
