@@ -13,8 +13,8 @@ type Product struct {
 	Amount       int       `json:"amount"`
 	Status       bool      `json:"status"`
 	Category     string    `json:"category"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 // ===== CREATE =====
@@ -35,7 +35,7 @@ type CreateProductResponse struct {
 	Amount       int       `json:"amount"`
 	Status       bool      `json:"status"`
 	Category     string    `json:"category"`
-	CreatedAt    time.Time `json:"created_at"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 // ===== UPDATE =====
@@ -56,7 +56,7 @@ type UpdateProductResponse struct {
 	Amount       int       `json:"amount"`
 	Status       bool      `json:"status"`
 	Category     string    `json:"category"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 // ===== GET =====
@@ -93,7 +93,7 @@ type ListProductsResponse struct {
 }
 
 type Pagination struct {
-	NextCursor int    `json:"next_cursor"`
-	HasMore    bool   `json:"has_more"`
+	NextCursor int    `json:"nextCursor"`
+	HasMore    bool   `json:"hasMore"`
 	Limit      uint64 `json:"limit"`
 }
