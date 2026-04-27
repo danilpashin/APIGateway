@@ -40,3 +40,34 @@ func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserReque
 
 	return s.repo.CreateUser(ctx, insertData)
 }
+
+func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateUserRequest) (*domain.User, error) {
+	currentUser, err := s.repo.GetUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	updateData := make(map[string]interface{})
+
+	if req.Username != "" {
+		updateData["username"] = req.Username
+	}
+	if req.Email != "" {
+		updateData["email"] = req.Email
+	}
+	if req.NewPassword != "" {
+		if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(req.Password)); err != nil {
+			return nil, errors.New("wrong password")
+		}
+		if len(req.NewPassword) < 8 {
+			return nil, errors.New("password must be at least 8 characters")
+		}
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
+		if err != nil {
+			return nil, errors.New("failed to generate password hash")
+		}
+		updateData["password_hash"] = passwordHash
+	}
+
+	return s.repo.UpdateUser(ctx, id, updateData)
+}
