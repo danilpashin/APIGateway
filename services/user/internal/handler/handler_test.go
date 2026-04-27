@@ -160,7 +160,7 @@ var testsUpdate = []TestUpdate{
 		name:       "general",
 		user:       &domain.User{ID: 1, Username: "Danil132", Email: "rvn243@gmail.com", PasswordHash: "$2a$10$nqFp/wGlchdjqATC22vgguUXzY.lXUoyizMsYeD8GjpG48bBk5tpe", Role: "user"},
 		userID:     "1",
-		req:        `{"username":"sad31fd", "email":"another_email@mail.ru", "old_password":"12345678", "new_password":"new_password123"}`,
+		req:        `{"username":"sad31fd", "email":"another_email@mail.ru", "oldPassword":"12345678", "newPassword":"new_password123"}`,
 		resp:       &domain.UpdateUserResponse{Username: "sad31fd", Email: "another_email@mail.ru"},
 		wantErr:    false,
 		wantStatus: 200,
