@@ -76,3 +76,28 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "empty id", http.StatusBadRequest)
+		return
+	}
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.service.GetUser(r.Context(), idInt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	resp := domain.GetUserResponse{Username: user.Username, CreatedAt: user.CreatedAt}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
