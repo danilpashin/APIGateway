@@ -33,7 +33,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.CreateUser(r.Context(), req)
+	user, err := h.service.CreateUser(r.Context(), &req)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -66,7 +66,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.UpdateUser(r.Context(), idInt, req)
+	user, err := h.service.UpdateUser(r.Context(), idInt, &req)
 	if err != nil {
 		h.handleError(w, err)
 		return

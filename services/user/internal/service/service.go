@@ -22,7 +22,7 @@ func NewUserService(repo postgres.UserRepoInterface) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error) {
+func (s *UserService) CreateUser(ctx context.Context, req *domain.CreateUserRequest) (*domain.User, error) {
 	insertData := make(map[string]any)
 
 	if req.Username != "" {
@@ -46,7 +46,7 @@ func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserReque
 	return s.repo.CreateUser(ctx, insertData)
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateUserRequest) (*domain.User, error) {
+func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.UpdateUserRequest) (*domain.User, error) {
 	currentUser, err := s.repo.GetUser(ctx, id)
 	if err != nil {
 		return nil, err
