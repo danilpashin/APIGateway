@@ -5,6 +5,7 @@ import (
 	"apigateway/services/user/internal/service"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http/httptest"
 	"reflect"
@@ -223,6 +224,102 @@ func TestUpdateUser(t *testing.T) {
 				}
 			} else {
 				var resp domain.UpdateUserResponse
+				err := json.NewDecoder(w.Body).Decode(&resp)
+				if err != nil {
+					t.Fatal("failed to decode w.Body: ", err)
+				}
+
+				if !reflect.DeepEqual(&resp, test.resp) {
+					t.Fatalf("expected %v, got: %v", test.resp, &resp)
+				}
+
+				if w.Code != test.wantStatus {
+					t.Fatalf("expected %d, got: %d", test.wantStatus, w.Code)
+				}
+			}
+		})
+	}
+}
+
+type TestGet struct {
+	name       string
+	user       *domain.User
+	userID     string
+	resp       *domain.GetUserResponse
+	wantErr    bool
+	wantStatus int
+	wantResp   string
+}
+
+var testsGet = []TestGet{
+	{
+		name:       "general",
+		user:       &domain.User{ID: 1, Username: "Danil132"},
+		userID:     "1",
+		resp:       &domain.GetUserResponse{Username: "Danil132"},
+		wantErr:    false,
+		wantStatus: 200,
+	},
+	{
+		name:       "empty id",
+		user:       nil,
+		userID:     "",
+		wantErr:    true,
+		wantStatus: 400,
+		wantResp:   "empty id\n",
+	},
+	{
+		name:       "user not found",
+		user:       nil,
+		userID:     "1",
+		wantErr:    true,
+		wantStatus: 404,
+		wantResp:   "user not found\n",
+	},
+}
+
+func TestGetUser(t *testing.T) {
+	for _, test := range testsGet {
+		t.Run(test.name, func(t *testing.T) {
+			mockRepo := MockUserRepo{
+				getUser: func(ctx context.Context, id int) (*domain.User, error) {
+					if test.name == "user not found" {
+						return nil, errors.New("user not found")
+					}
+
+					return test.user, nil
+				},
+			}
+
+			userService := service.NewUserService(&mockRepo)
+			userHandler := NewUserHandler(*userService)
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/users/{id}", nil)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", test.userID)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+			userHandler.GetUser(w, req)
+
+			if test.wantErr {
+				bodyBytes, err := io.ReadAll(w.Body)
+				if err != nil {
+					t.Fatal("failed to read w.Body: ", err)
+				}
+
+				got := string(bodyBytes)
+				if got != test.wantResp {
+					t.Fatalf("expected %s, got: %s", test.wantResp, got)
+				}
+
+				if w.Code != test.wantStatus {
+					t.Fatalf("expected %d, got: %d", test.wantStatus, w.Code)
+				}
+
+			} else {
+				var resp domain.GetUserResponse
 				err := json.NewDecoder(w.Body).Decode(&resp)
 				if err != nil {
 					t.Fatal("failed to decode w.Body: ", err)
