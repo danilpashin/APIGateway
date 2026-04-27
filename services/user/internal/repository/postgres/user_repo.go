@@ -68,7 +68,29 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[
 }
 
 func (r *UserRepository) GetUser(ctx context.Context, id int) (*domain.User, error) {
-	return nil, nil
+	var user domain.User
+	var role_id int
+	query := `SELECT * FROM users WHERE id = $1`
+
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role_id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	query = `SELECT name FROM roles WHERE id = $1`
+
+	err = r.db.QueryRowContext(ctx, query, role_id).Scan(&user.Role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("role not found")
+		}
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (r *UserRepository) ListUsers(ctx context.Context, cursor int, limit uint64) ([]*domain.User, int, bool, error) {
