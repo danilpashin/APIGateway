@@ -15,21 +15,21 @@ import (
 )
 
 type MockProductRepo struct {
-	createProduct func(ctx context.Context, insertData map[string]interface{}) (*domain.Product, error)
-	updateProduct func(ctx context.Context, id int, updateData map[string]interface{}) (*domain.Product, error)
+	createProduct func(ctx context.Context, insertData map[string]any) (*domain.Product, error)
+	updateProduct func(ctx context.Context, id int, updateData map[string]any) (*domain.Product, error)
 	getProduct    func(ctx context.Context, id int) (*domain.Product, error)
 	listProducts  func(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, int, bool, error)
 	deleteProduct func(ctx context.Context, id int) error
 }
 
-func (m *MockProductRepo) CreateProduct(ctx context.Context, insertData map[string]interface{}) (*domain.Product, error) {
+func (m *MockProductRepo) CreateProduct(ctx context.Context, insertData map[string]any) (*domain.Product, error) {
 	if m.createProduct != nil {
 		return m.createProduct(ctx, insertData)
 	}
 	return nil, nil
 }
 
-func (m *MockProductRepo) UpdateProduct(ctx context.Context, id int, updateData map[string]interface{}) (*domain.Product, error) {
+func (m *MockProductRepo) UpdateProduct(ctx context.Context, id int, updateData map[string]any) (*domain.Product, error) {
 	if m.updateProduct != nil {
 		return m.updateProduct(ctx, id, updateData)
 	}
@@ -122,7 +122,7 @@ func TestCreateProductHandler(t *testing.T) {
 	for _, test := range testsCreate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
-				createProduct: func(ctx context.Context, insertData map[string]interface{}) (*domain.Product, error) {
+				createProduct: func(ctx context.Context, insertData map[string]any) (*domain.Product, error) {
 					if test.name == "internal server error" {
 						return nil, domain.ErrQuery
 					}
@@ -271,7 +271,7 @@ func TestUpdateProductHandler(t *testing.T) {
 	for _, test := range testsUpdate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
-				updateProduct: func(ctx context.Context, id int, updateData map[string]interface{}) (*domain.Product, error) {
+				updateProduct: func(ctx context.Context, id int, updateData map[string]any) (*domain.Product, error) {
 					if test.name == "internal server error" {
 						return nil, domain.ErrQuery
 					}

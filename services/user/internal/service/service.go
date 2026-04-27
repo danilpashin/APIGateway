@@ -18,7 +18,7 @@ func NewUserService(repo postgres.UserRepoInterface) *UserService {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error) {
-	insertData := make(map[string]interface{})
+	insertData := make(map[string]any)
 
 	if req.Username != "" {
 		insertData["username"] = req.Username
@@ -47,7 +47,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateU
 		return nil, err
 	}
 
-	updateData := make(map[string]interface{})
+	updateData := make(map[string]any)
 
 	if req.Username != "" {
 		updateData["username"] = req.Username

@@ -17,7 +17,7 @@ func NewProductService(repo postgres.ProductRepoInterface) *ProductService {
 }
 
 func (s *ProductService) CreateProduct(ctx context.Context, req *domain.CreateProductRequest) (*domain.Product, error) {
-	insertData := make(map[string]interface{}, 0)
+	insertData := make(map[string]any, 0)
 
 	if req.Name != "" {
 		err := regex.ValidateProductName(req.Name)
@@ -48,7 +48,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *domain.CreatePr
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.UpdateProductRequest) (*domain.Product, error) {
-	updateData := make(map[string]interface{}, 0)
+	updateData := make(map[string]any, 0)
 
 	if req.Name != nil {
 		err := regex.ValidateProductName(*req.Name)

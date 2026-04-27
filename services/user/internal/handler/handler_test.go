@@ -15,21 +15,21 @@ import (
 )
 
 type MockUserRepo struct {
-	createUser func(ctx context.Context, insertData map[string]interface{}) (*domain.User, error)
-	updateUser func(ctx context.Context, id int, updateData map[string]interface{}) (*domain.User, error)
+	createUser func(ctx context.Context, insertData map[string]any) (*domain.User, error)
+	updateUser func(ctx context.Context, id int, updateData map[string]any) (*domain.User, error)
 	getUser    func(ctx context.Context, id int) (*domain.User, error)
 	listUsers  func(ctx context.Context, cursor int, limit uint64) ([]*domain.User, int, bool, error)
 	deleteUser func(ctx context.Context, id int) error
 }
 
-func (m *MockUserRepo) CreateUser(ctx context.Context, insertData map[string]interface{}) (*domain.User, error) {
+func (m *MockUserRepo) CreateUser(ctx context.Context, insertData map[string]any) (*domain.User, error) {
 	if m.createUser != nil {
 		return m.createUser(ctx, insertData)
 	}
 	return nil, nil
 }
 
-func (m *MockUserRepo) UpdateUser(ctx context.Context, id int, updateData map[string]interface{}) (*domain.User, error) {
+func (m *MockUserRepo) UpdateUser(ctx context.Context, id int, updateData map[string]any) (*domain.User, error) {
 	if m.updateUser != nil {
 		return m.updateUser(ctx, id, updateData)
 	}
@@ -98,7 +98,7 @@ func TestCreateUser(t *testing.T) {
 	for _, test := range testsCreate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockUserRepo{
-				createUser: func(ctx context.Context, insertData map[string]interface{}) (*domain.User, error) {
+				createUser: func(ctx context.Context, insertData map[string]any) (*domain.User, error) {
 					return test.user, nil
 				},
 			}
@@ -180,7 +180,7 @@ func TestUpdateUser(t *testing.T) {
 	for _, test := range testsUpdate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockUserRepo{
-				updateUser: func(ctx context.Context, id int, updateData map[string]interface{}) (*domain.User, error) {
+				updateUser: func(ctx context.Context, id int, updateData map[string]any) (*domain.User, error) {
 					return test.user, nil
 				},
 			}

@@ -20,7 +20,7 @@ func NewPostgresProductRepository(db *sql.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
-func (r *ProductRepository) CreateProduct(ctx context.Context, insertData map[string]interface{}) (*domain.Product, error) {
+func (r *ProductRepository) CreateProduct(ctx context.Context, insertData map[string]any) (*domain.Product, error) {
 	var product domain.Product
 	builder := squirrel.Insert("products").
 		SetMap(insertData).
@@ -46,7 +46,7 @@ func (r *ProductRepository) CreateProduct(ctx context.Context, insertData map[st
 	return &product, nil
 }
 
-func (r *ProductRepository) UpdateProduct(ctx context.Context, id int, updateData map[string]interface{}) (*domain.Product, error) {
+func (r *ProductRepository) UpdateProduct(ctx context.Context, id int, updateData map[string]any) (*domain.Product, error) {
 	var product domain.Product
 	builder := squirrel.Update("products").
 		SetMap(updateData).
