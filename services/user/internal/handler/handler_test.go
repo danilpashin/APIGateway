@@ -5,7 +5,6 @@ import (
 	"apigateway/services/user/internal/service"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http/httptest"
 	"reflect"
@@ -83,7 +82,7 @@ var testsCreate = []TestCreate{
 		req:        `{"username":"", "email":"", "password":""}`,
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   "insert data is empty or not enough\n",
+		wantResp:   domain.ErrNoInsertData.Error(),
 	},
 	{
 		name:       "invalid JSON request",
@@ -91,7 +90,7 @@ var testsCreate = []TestCreate{
 		req:        `!{s"d username"2:"", "email":""fj, "password":""(}`,
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   "invalid JSON\n",
+		wantResp:   domain.ErrInvalidJSON.Error(),
 	},
 }
 
@@ -118,8 +117,8 @@ func TestCreateUser(t *testing.T) {
 					t.Fatal("failed to read w.Body: ", err)
 				}
 
-				got := string(bodyBytes)
-				if !strings.EqualFold(got, test.wantResp) {
+				got := strings.Trim(string(bodyBytes), "\n")
+				if got != test.wantResp {
 					t.Fatalf("expected %v, got: %v", test.wantResp, got)
 				}
 
@@ -173,7 +172,7 @@ var testsUpdate = []TestUpdate{
 		req:        `2{dfg{(}Ac2d:}`,
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   "invalid JSON\n",
+		wantResp:   domain.ErrInvalidJSON.Error(),
 	},
 }
 
@@ -214,8 +213,8 @@ func TestUpdateUser(t *testing.T) {
 					t.Fatal("failed to read w.Body: ", err)
 				}
 
-				got := string(bodyBytes)
-				if !strings.EqualFold(got, test.wantResp) {
+				got := strings.Trim(string(bodyBytes), "\n")
+				if got != test.wantResp {
 					t.Fatalf("expected %s, got: %s", test.wantResp, got)
 				}
 
@@ -266,7 +265,7 @@ var testsGet = []TestGet{
 		userID:     "",
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   "empty id\n",
+		wantResp:   domain.ErrIDRequired.Error(),
 	},
 	{
 		name:       "user not found",
@@ -274,7 +273,7 @@ var testsGet = []TestGet{
 		userID:     "1",
 		wantErr:    true,
 		wantStatus: 404,
-		wantResp:   "user not found\n",
+		wantResp:   domain.ErrUserNotFound.Error(),
 	},
 }
 
@@ -284,7 +283,7 @@ func TestGetUser(t *testing.T) {
 			mockRepo := MockUserRepo{
 				getUser: func(ctx context.Context, id int) (*domain.User, error) {
 					if test.name == "user not found" {
-						return nil, errors.New("user not found")
+						return nil, domain.ErrUserNotFound
 					}
 
 					return test.user, nil
@@ -309,7 +308,7 @@ func TestGetUser(t *testing.T) {
 					t.Fatal("failed to read w.Body: ", err)
 				}
 
-				got := string(bodyBytes)
+				got := strings.Trim(string(bodyBytes), "\n")
 				if got != test.wantResp {
 					t.Fatalf("expected %s, got: %s", test.wantResp, got)
 				}

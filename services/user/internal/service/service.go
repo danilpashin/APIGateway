@@ -40,7 +40,7 @@ func (s *UserService) CreateUser(ctx context.Context, req domain.CreateUserReque
 	}
 
 	if len(insertData) < 3 {
-		return nil, errors.New("insert data is empty or not enough")
+		return nil, domain.ErrNoInsertData
 	}
 
 	return s.repo.CreateUser(ctx, insertData)
@@ -59,14 +59,14 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateU
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(req.Password)); err != nil {
-		return nil, errors.New("wrong old password")
+		return nil, domain.ErrWrongPassword
 	} else {
 		if req.Email != "" {
 			updateData["email"] = req.Email
 		}
 		if req.NewPassword != "" {
 			if len(req.NewPassword) < 8 {
-				return nil, errors.New("password must be at least 8 characters")
+				return nil, domain.ErrInvalidPassword
 			}
 			passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
 			if err != nil {
@@ -81,7 +81,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateU
 
 func (s *UserService) GetUser(ctx context.Context, id int) (*domain.User, error) {
 	if id <= 0 {
-		return nil, errors.New("invalid id")
+		return nil, domain.ErrInvalidID
 	}
 
 	return s.repo.GetUser(ctx, id)

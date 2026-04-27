@@ -4,7 +4,6 @@ import (
 	"apigateway/services/user/internal/domain"
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/Masterminds/squirrel"
 )
@@ -25,12 +24,12 @@ func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]a
 		PlaceholderFormat(squirrel.Dollar)
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, errors.New("failed insert query build")
+		return nil, err
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		return nil, errors.New("failed insert query")
+		return nil, err
 	}
 
 	return &user, nil
@@ -43,13 +42,13 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return nil, errors.New("failed update query build")
+		return nil, err
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &role_id, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found")
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -59,7 +58,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[
 	err = r.db.QueryRowContext(ctx, query, role_id).Scan(&user.Role)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("role not found")
+			return nil, domain.ErrRoleNotFound
 		}
 		return nil, err
 	}
@@ -75,7 +74,7 @@ func (r *UserRepository) GetUser(ctx context.Context, id int) (*domain.User, err
 	err := r.db.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &role_id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found")
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -85,7 +84,7 @@ func (r *UserRepository) GetUser(ctx context.Context, id int) (*domain.User, err
 	err = r.db.QueryRowContext(ctx, query, role_id).Scan(&user.Role)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("role not found")
+			return nil, domain.ErrRoleNotFound
 		}
 		return nil, err
 	}
