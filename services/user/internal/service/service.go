@@ -5,9 +5,14 @@ import (
 	"apigateway/services/user/internal/repository/postgres"
 	"context"
 	"errors"
+	"pkg/env"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+// Using bcrypt with cost 13 because it provides balance between security and performance.
+// Lower costs (10-12) are too weak against modern GPU attacks.
+var bcryptCost = env.GetEnvAsInt("BCRYPT_COST", 13)
 
 type UserService struct {
 	repo postgres.UserRepoInterface
@@ -52,21 +57,23 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req domain.UpdateU
 	if req.Username != "" {
 		updateData["username"] = req.Username
 	}
-	if req.Email != "" {
-		updateData["email"] = req.Email
-	}
-	if req.NewPassword != "" {
-		if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(req.Password)); err != nil {
-			return nil, errors.New("wrong password")
+
+	if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(req.Password)); err != nil {
+		return nil, errors.New("wrong old password")
+	} else {
+		if req.Email != "" {
+			updateData["email"] = req.Email
 		}
-		if len(req.NewPassword) < 8 {
-			return nil, errors.New("password must be at least 8 characters")
+		if req.NewPassword != "" {
+			if len(req.NewPassword) < 8 {
+				return nil, errors.New("password must be at least 8 characters")
+			}
+			passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
+			if err != nil {
+				return nil, errors.New("failed to generate password hash")
+			}
+			updateData["password_hash"] = passwordHash
 		}
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
-		if err != nil {
-			return nil, errors.New("failed to generate password hash")
-		}
-		updateData["password_hash"] = passwordHash
 	}
 
 	return s.repo.UpdateUser(ctx, id, updateData)
