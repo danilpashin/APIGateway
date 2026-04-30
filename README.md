@@ -8,17 +8,18 @@
 - [ ] Admin-only endpoints
 - [ ] Prometheus metrics
 - [ ] Unit tests (90% coverage)
+- [ ] Integration tests (90% coverage)
 
 ## Tech Stack🚀
 - **Go** 1.26 🐹
 - **chi**⚡️
 - **PostgreSQL** 🐘
+- **Docker & Docker Compose** 🐳
 
 ## Will be used
 - **Redis** 📡 
 - **JWT** 🔐
 - **Prometheus** 📊
-- **Docker & Docker Compose** 🐳
 
 ## Architecture🏗️
 Client → Gateway → [User Service, Product Service] → [Redis, PostgreSQL]
