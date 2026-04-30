@@ -1,11 +1,11 @@
-FROM golang:1.26
+FROM golang:1.26 AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
+COPY services/product services/product
+
 RUN go mod download
-COPY *.go ./
 RUN go build -o product ./services/product/cmd
 
 FROM alpine:latest
 COPY --from=builder /app/product /product
 CMD ["/product"]
-

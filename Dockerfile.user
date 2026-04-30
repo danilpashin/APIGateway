@@ -1,0 +1,11 @@
+FROM golang:1.26 AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+COPY services/user services/user
+
+RUN go mod download
+RUN go build -o user ./services/user/cmd
+
+FROM alpine:latest
+COPY --from=builder /app/user /user
+CMD ["/user"]
