@@ -51,7 +51,7 @@ func (r *ProductRepository) UpdateProduct(ctx context.Context, id int, updateDat
 	builder := squirrel.Update("products").
 		SetMap(updateData).
 		Where(squirrel.Eq{"id": id}).
-		Suffix("RETURNING id, name, manufacturer, price, amount, created_at, updated_at").
+		Suffix("RETURNING id, name, manufacturer, price, amount, status, category, created_at, updated_at").
 		PlaceholderFormat(squirrel.Dollar)
 
 	query, args, err := builder.ToSql()
@@ -59,7 +59,7 @@ func (r *ProductRepository) UpdateProduct(ctx context.Context, id int, updateDat
 		return nil, domain.ErrUpdateQuery
 	}
 
-	err = r.db.QueryRowContext(ctx, query, args).
+	err = r.db.QueryRowContext(ctx, query, args...).
 		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -94,7 +94,7 @@ func (r *ProductRepository) ListProducts(ctx context.Context, cursor int, limit 
 	listProducts := make([]*domain.Product, 0)
 
 	builder := squirrel.Select("*").From("products").
-		Where(squirrel.Gt{"id": cursor}).Limit(limit + 1).OrderBy("id ASC").
+		Where(squirrel.GtOrEq{"id": cursor}).Limit(limit + 1).OrderBy("id ASC").
 		PlaceholderFormat(squirrel.Dollar)
 
 	query, args, err := builder.ToSql()
@@ -147,7 +147,7 @@ func (r *ProductRepository) DeleteProduct(ctx context.Context, id int) error {
 	}
 
 	err = r.db.QueryRowContext(ctx, query, args...).Scan()
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
