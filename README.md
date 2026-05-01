@@ -8,7 +8,7 @@
 - [ ] Admin-only endpoints
 - [ ] Prometheus metrics
 - [ ] Unit tests (90% coverage)
-- [ ] Integration tests (90% coverage)
+- [ ] Integration tests
 
 ## Tech Stack🚀
 - **Go** 1.26 🐹
