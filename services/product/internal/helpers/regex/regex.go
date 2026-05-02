@@ -8,7 +8,7 @@ import (
 )
 
 func ValidateProductName(str string) error {
-	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z\d ]+$`, str)
+	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z\d -]+$`, str)
 	if !matched {
 		return domain.ErrInvalidName
 	}
