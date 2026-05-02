@@ -84,6 +84,9 @@ func (r *ProductRepository) GetProduct(ctx context.Context, id int) (*domain.Pro
 	err = r.db.QueryRowContext(ctx, query, args...).
 		Scan(&product.ID, &product.Name, &product.Manufacturer, &product.Price, &product.Amount, &product.Status, &product.Category, &product.CreatedAt, &product.UpdatedAt)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrProductsNotFound
+		}
 		return nil, err
 	}
 
