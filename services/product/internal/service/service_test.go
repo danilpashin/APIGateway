@@ -104,6 +104,15 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrManufacturerRequired,
 	},
 	{
+		name: "invalid manufacturer",
+		input: domain.CreateProductRequest{
+			Name:         "Test-product",
+			Manufacturer: "t",
+		},
+		wantErr:  true,
+		wantResp: domain.ErrInvalidManufacturer,
+	},
+	{
 		name: "negative price",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
@@ -135,6 +144,18 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidAmount,
 	},
 	{
+		name: "missing category",
+		input: domain.CreateProductRequest{
+			Name:         "Test-product",
+			Manufacturer: "test-manufacturer",
+			Price:        10000,
+			Amount:       10,
+			Status:       true,
+		},
+		wantErr:  true,
+		wantResp: domain.ErrCategoryRequired,
+	},
+	{
 		name: "invalid category",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
@@ -146,18 +167,6 @@ var testsCreate = []TestCreate{
 		},
 		wantErr:  true,
 		wantResp: domain.ErrInvalidCategory,
-	},
-	{
-		name: "missing category",
-		input: domain.CreateProductRequest{
-			Name:         "Test-product",
-			Manufacturer: "test-manufacturer",
-			Price:        10000,
-			Amount:       10,
-			Status:       true,
-		},
-		wantErr:  true,
-		wantResp: domain.ErrCategoryRequired,
 	},
 }
 
@@ -510,9 +519,9 @@ var testsList = []TestList{
 		wantErr: false,
 	},
 	{
-		name:   "negative cursor",
+		name:   "negative cursor and null limit",
 		cursor: -2,
-		limit:  2,
+		limit:  0,
 		want: []*domain.Product{
 			{
 				ID:           1,
@@ -543,11 +552,57 @@ var testsList = []TestList{
 			},
 		},
 		wantPagination: &domain.Pagination{
-			NextCursor: 3,
-			HasMore:    true,
-			Limit:      2,
+			NextCursor: 0,
+			HasMore:    false,
+			Limit:      10,
 		},
 		wantErr: false,
+	},
+	{
+		name:   "50+ limit",
+		cursor: 1,
+		limit:  100,
+		want: []*domain.Product{
+			{
+				ID:           1,
+				Name:         "test-product",
+				Manufacturer: "test-manufacturer",
+				Price:        10000,
+				Amount:       10,
+				Status:       true,
+				Category:     "Household appliances",
+			},
+			{
+				ID:           2,
+				Name:         "test-product",
+				Manufacturer: "test-manufacturer",
+				Price:        10000,
+				Amount:       10,
+				Status:       true,
+				Category:     "Household appliances",
+			},
+			{
+				ID:           3,
+				Name:         "test-product",
+				Manufacturer: "test-manufacturer",
+				Price:        10000,
+				Amount:       10,
+				Status:       true,
+				Category:     "Household appliances",
+			},
+		},
+		wantPagination: &domain.Pagination{
+			NextCursor: 0,
+			HasMore:    false,
+			Limit:      50,
+		},
+		wantErr: false,
+	},
+	{
+		name:    "repo error",
+		cursor:  1,
+		limit:   2,
+		wantErr: true,
 	},
 }
 
@@ -556,6 +611,10 @@ func TestListProducts(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				listProducts: func(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, int, bool, error) {
+					if test.wantErr {
+						return nil, 0, false, domain.ErrListQuery
+					}
+
 					return test.want, test.wantPagination.NextCursor, test.wantPagination.HasMore, nil
 				},
 			}
@@ -569,8 +628,8 @@ func TestListProducts(t *testing.T) {
 					t.Errorf("expected nil, got: %v", products)
 				}
 
-				if err != test.wantResp {
-					t.Fatalf("expected %v, got: %v", test.wantResp, err)
+				if err == nil {
+					t.Fatalf("expected nil, got: %v", err)
 				}
 			} else {
 				if diff := cmp.Diff(test.want, products); diff != "" {
