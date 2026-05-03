@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-func ValidateProductName(str string) error {
+func ValidateName(str string) error {
 	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z\d -]+$`, str)
 	if !matched {
 		return domain.ErrInvalidName
@@ -36,9 +36,47 @@ func ValidateProductName(str string) error {
 				digitCount++
 			}
 		}
-		if letterCount < 2 && digitCount == 0 {
+		if letterCount < 2 {
 			return domain.ErrInvalidName
 		}
+	}
+
+	return nil
+}
+
+func ValidateManufacturer(str string) error {
+	matched, _ := regexp.MatchString(`^[a-zA-Z -]+$`, str)
+	if !matched {
+		return domain.ErrInvalidManufacturer
+	}
+
+	var letterCount int
+	for _, char := range str {
+		if unicode.IsLetter(char) {
+			letterCount++
+		}
+	}
+	if letterCount < 2 {
+		return domain.ErrInvalidManufacturer
+	}
+
+	return nil
+}
+
+func ValidateCategory(str string) error {
+	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z -]+$`, str)
+	if !matched {
+		return domain.ErrInvalidCategory
+	}
+
+	var letterCount int
+	for _, char := range str {
+		if unicode.IsLetter(char) {
+			letterCount++
+		}
+	}
+	if letterCount < 4 {
+		return domain.ErrInvalidCategory
 	}
 
 	return nil
