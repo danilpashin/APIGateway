@@ -70,7 +70,7 @@ type TestCreate struct {
 }
 
 var testCreate = TestCreate{
-	name: "general",
+	name: "success",
 	product: &domain.Product{
 		ID:           1,
 		Name:         "test-product",
@@ -82,7 +82,7 @@ var testCreate = TestCreate{
 	},
 }
 
-func TestCreateProduct(t *testing.T) {
+func TestProductRepository_Create(t *testing.T) {
 	test := testCreate
 	repo := setupTestDB(t)
 	t.Run(test.name, func(t *testing.T) {
@@ -108,7 +108,7 @@ type TestUpdate struct {
 }
 
 var testUpdate = TestUpdate{
-	name: "general",
+	name: "success",
 	updateData: map[string]any{
 		"name":         "UPD-test-product",
 		"manufacturer": "UPD-test-manufacturer",
@@ -128,7 +128,7 @@ var testUpdate = TestUpdate{
 	},
 }
 
-func TestUpdateProduct(t *testing.T) {
+func TestProductRepository_Update(t *testing.T) {
 	repo := setupTestDB(t)
 	CreateTestProduct(repo, t)
 	t.Run(testUpdate.name, func(t *testing.T) {
@@ -154,7 +154,7 @@ type TestGet struct {
 }
 
 var testGet = TestGet{
-	name:      "general",
+	name:      "success",
 	productID: 1,
 	product: &domain.Product{
 		ID:           1,
@@ -167,7 +167,7 @@ var testGet = TestGet{
 	},
 }
 
-func TestGetProduct(t *testing.T) {
+func TestProductRepository_Get(t *testing.T) {
 	repo := setupTestDB(t)
 	CreateTestProduct(repo, t)
 	t.Run(testGet.name, func(t *testing.T) {
@@ -196,7 +196,7 @@ type TestList struct {
 }
 
 var testList = TestList{
-	name:   "general",
+	name:   "success",
 	cursor: 1,
 	limit:  2,
 	listProducts: []*domain.Product{
@@ -232,7 +232,7 @@ var testList = TestList{
 	hasMore:   true,
 }
 
-func TestListProducts(t *testing.T) {
+func TestProductRepository_List(t *testing.T) {
 	repo := setupTestDB(t)
 	CreateTestProduct(repo, t)
 	CreateTestProduct(repo, t)
@@ -268,12 +268,12 @@ type TestDelete struct {
 }
 
 var testDelete = TestDelete{
-	name:      "general",
+	name:      "success",
 	productID: 1,
 	result:    nil,
 }
 
-func TestDeleteProduct(t *testing.T) {
+func TestProductRepository_Delete(t *testing.T) {
 	repo := setupTestDB(t)
 	CreateTestProduct(repo, t)
 	t.Run(testDelete.name, func(t *testing.T) {

@@ -69,23 +69,37 @@ type TestCreate struct {
 
 var testsCreate = []TestCreate{
 	{
-		name:       "general",
-		product:    &domain.Product{Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		name: "success: all values",
+		product: &domain.Product{
+			Name:         "Laptop HUAWEI D16 2024",
+			Manufacturer: "HUAWEI",
+			Price:        57499,
+			Amount:       21,
+			Status:       true,
+			Category:     "PCs, laptops, peripherals",
+		},
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": true, "category": "PCs, laptops, peripherals"}`,
 		resp:       `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": true, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    false,
 		wantStatus: 201,
 	},
 	{
-		name:       "without status",
-		product:    &domain.Product{Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		name: "success: without status",
+		product: &domain.Product{
+			Name:         "Laptop HUAWEI D16 2024",
+			Manufacturer: "HUAWEI",
+			Price:        57499,
+			Amount:       21,
+			Status:       true,
+			Category:     "PCs, laptops, peripherals",
+		},
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "category": "PCs, laptops, peripherals"}`,
 		resp:       `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": true, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    false,
 		wantStatus: 201,
 	},
 	{
-		name:       "already created",
+		name:       "error: already created",
 		product:    &domain.Product{Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
@@ -93,15 +107,18 @@ var testsCreate = []TestCreate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrProductExist.Error()},
 	},
 	{
-		name:       "no values",
+		name:       "error: no values",
 		product:    nil,
 		req:        `{"name": "", "manufacturer": "", "price": 0, "amount": 0, "category": ""}`,
 		wantErr:    true,
 		wantStatus: 400,
-		wantResp:   domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Amount": "this field is required", "Category": "this field is required", "Manufacturer": "this field is required", "Name": "this field is required", "Price": "this field is required"}},
+		wantResp: domain.ErrorResponse{
+			Message: "validation error",
+			Details: map[string]string{"Amount": "this field is required", "Category": "this field is required", "Manufacturer": "this field is required", "Name": "this field is required", "Price": "this field is required"},
+		},
 	},
 	{
-		name:       "invalid status value",
+		name:       "error: invalid status value",
 		product:    nil,
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": 5123, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
@@ -109,7 +126,7 @@ var testsCreate = []TestCreate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidJSON.Error()},
 	},
 	{
-		name:       "internal server error",
+		name:       "error: internal server error",
 		product:    nil,
 		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": true, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
@@ -118,12 +135,12 @@ var testsCreate = []TestCreate{
 	},
 }
 
-func TestCreateProductHandler(t *testing.T) {
+func TestProductHandler_Create(t *testing.T) {
 	for _, test := range testsCreate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				createProduct: func(ctx context.Context, insertData map[string]any) (*domain.Product, error) {
-					if test.name == "internal server error" {
+					if test.name == "error: internal server error" {
 						return nil, domain.ErrQuery
 					}
 
@@ -194,26 +211,60 @@ type TestUpdate struct {
 
 var testsUpdate = []TestUpdate{
 	{
-		name:       "general",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 60499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
-		productID:  "1",
-		req:        `{"name": "Laptop HUAWEI D16 2025", "manufacturer": "HUAWEI", "price": 65999, "amount": 21, "category": "PCs, laptops, peripherals"}`,
-		resp:       &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2025", Manufacturer: "HUAWEI", Price: 65999, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		name: "success: all values",
+		product: &domain.Product{
+			ID:           1,
+			Name:         "Laptop HUAWEI D16 2024",
+			Manufacturer: "HUAWEI",
+			Price:        60499,
+			Amount:       21,
+			Status:       true,
+			Category:     "PCs, laptops, peripherals",
+		},
+		productID: "1",
+		req:       `{"name": "Laptop HUAWEI D16 2025", "manufacturer": "HUAWEI", "price": 65999, "amount": 25, "status":false, "category": "Laptops"}`,
+		resp: &domain.Product{
+			ID:           1,
+			Name:         "Laptop HUAWEI D16 2025",
+			Manufacturer: "HUAWEI",
+			Price:        65999,
+			Amount:       25,
+			Status:       true,
+			Category:     "Laptops",
+		},
 		wantErr:    false,
 		wantStatus: 200,
 	},
 	{
-		name:       "same values",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
-		productID:  "1",
-		req:        `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": true, "category": "PCs, laptops, peripherals"}`,
-		resp:       &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		name: "success: no new values",
+		product: &domain.Product{
+			ID:           1,
+			Name:         "Laptop HUAWEI D16 2024",
+			Manufacturer: "HUAWEI",
+			Price:        57499,
+			Amount:       21,
+			Status:       true,
+			Category:     "PCs, laptops, peripherals",
+		},
+		productID: "1",
+		req:       `{"name": "Laptop HUAWEI D16 2024", "manufacturer": "HUAWEI", "price": 57499, "amount": 21, "status": true, "category": "PCs, laptops, peripherals"}`,
+		resp: &domain.Product{
+			ID:           1,
+			Name:         "Laptop HUAWEI D16 2024",
+			Manufacturer: "HUAWEI",
+			Price:        57499,
+			Amount:       21,
+			Status:       true,
+			Category:     "PCs, laptops, peripherals",
+		},
 		wantErr:    false,
 		wantStatus: 200,
 	},
 	{
-		name:       "product does not exist",
-		product:    &domain.Product{ID: 1},
+		name: "error: product does not exist",
+		product: &domain.Product{
+			ID: 1,
+		},
 		productID:  "2",
 		req:        `{"name": "Laptop HUAWEI D16 2025", "manufacturer": "HUAWEI", "price": 65999, "amount": 21, "category": "PCs, laptops, peripherals"}`,
 		wantErr:    true,
@@ -221,7 +272,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrProductsNotFound.Error()},
 	},
 	{
-		name:       "no update data",
+		name:       "error: no update data",
 		product:    nil,
 		productID:  "1",
 		req:        `{}`,
@@ -230,7 +281,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrNoUpdateData.Error()},
 	},
 	{
-		name:       "invalid request",
+		name:       "error: invalid request",
 		product:    nil,
 		productID:  "1",
 		req:        `1{-&{(}}`,
@@ -239,7 +290,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidJSON.Error()},
 	},
 	{
-		name:       "invalid id",
+		name:       "error: invalid id",
 		product:    nil,
 		productID:  "-1.5",
 		req:        `{}`,
@@ -248,7 +299,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidID.Error()},
 	},
 	{
-		name:       "no id provided",
+		name:       "error: no id provided",
 		product:    nil,
 		productID:  "",
 		req:        `{}`,
@@ -257,7 +308,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrIDRequired.Error()},
 	},
 	{
-		name:       "internal server error",
+		name:       "error: internal server error",
 		product:    nil,
 		productID:  "1",
 		req:        `{"name": "Laptop HUAWEI D16 2025", "manufacturer": "HUAWEI", "price": 65999, "amount": 21, "category": "PCs, laptops, peripherals"}`,
@@ -267,12 +318,12 @@ var testsUpdate = []TestUpdate{
 	},
 }
 
-func TestUpdateProductHandler(t *testing.T) {
+func TestProductHandler_Update(t *testing.T) {
 	for _, test := range testsUpdate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				updateProduct: func(ctx context.Context, id int, updateData map[string]any) (*domain.Product, error) {
-					if test.name == "internal server error" {
+					if test.name == "error: internal server error" {
 						return nil, domain.ErrQuery
 					}
 
@@ -347,16 +398,26 @@ type TestGet struct {
 
 var testsGet = []TestGet{
 	{
-		name:       "general",
-		product:    &domain.Product{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
+		name: "success",
+		product: &domain.Product{
+			ID:           1,
+			Name:         "Laptop HUAWEI D16 2024",
+			Manufacturer: "HUAWEI",
+			Price:        57499,
+			Amount:       21,
+			Status:       true,
+			Category:     "PCs, laptops, peripherals",
+		},
 		productID:  "1",
 		url:        "/products/{id}",
 		wantErr:    false,
 		wantStatus: 200,
 	},
 	{
-		name:       "product not found",
-		product:    &domain.Product{ID: 1},
+		name: "error: product not found",
+		product: &domain.Product{
+			ID: 1,
+		},
 		productID:  "2",
 		url:        "/products/{id}",
 		wantErr:    true,
@@ -364,7 +425,7 @@ var testsGet = []TestGet{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrProductsNotFound.Error()},
 	},
 	{
-		name:       "no id provided",
+		name:       "error: no id provided",
 		product:    nil,
 		productID:  "",
 		url:        "/products/{id}",
@@ -373,7 +434,7 @@ var testsGet = []TestGet{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrIDRequired.Error()},
 	},
 	{
-		name:       "invalid id",
+		name:       "error: invalid id",
 		product:    nil,
 		productID:  "-1.5",
 		url:        "/products/{id}",
@@ -382,7 +443,7 @@ var testsGet = []TestGet{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidID.Error()},
 	},
 	{
-		name:       "internal server error",
+		name:       "error: internal server error",
 		product:    nil,
 		productID:  "1",
 		url:        "/products/{id}",
@@ -392,12 +453,12 @@ var testsGet = []TestGet{
 	},
 }
 
-func TestGetProductHandler(t *testing.T) {
+func TestProductHandler_Get(t *testing.T) {
 	for _, test := range testsGet {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				getProduct: func(ctx context.Context, id int) (*domain.Product, error) {
-					if test.name == "internal server error" {
+					if test.name == "error: internal server error" {
 						return nil, domain.ErrQuery
 					}
 
@@ -467,12 +528,44 @@ type TestList struct {
 
 var testsList = []TestList{
 	{
-		name: "general 4 products, 1 cursor, 3 limit",
+		name: "success: 4 products (cursor=1 limit=3)",
 		products: []*domain.Product{
-			{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
-			{ID: 2, Name: "Microphone Fifine AM8", Manufacturer: "Fifine", Price: 4499, Amount: 18, Status: true, Category: "PC accessories"},
-			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
-			{ID: 4, Name: "TV Samsung UE43U8000FUXRU", Manufacturer: "Samsung", Price: 30499, Amount: 5, Status: true, Category: "TV, consoles, and audio"},
+			{
+				ID:           1,
+				Name:         "Laptop HUAWEI D16 2024",
+				Manufacturer: "HUAWEI",
+				Price:        57499,
+				Amount:       21,
+				Status:       true,
+				Category:     "PCs, laptops, peripherals",
+			},
+			{
+				ID:           2,
+				Name:         "Microphone Fifine AM8",
+				Manufacturer: "Fifine",
+				Price:        4499,
+				Amount:       18,
+				Status:       true,
+				Category:     "PC accessories",
+			},
+			{
+				ID:           3,
+				Name:         "Apple iPhone 15 128 GB",
+				Manufacturer: "Apple",
+				Price:        56999,
+				Amount:       23,
+				Status:       true,
+				Category:     "Smartphones and photographic equipment",
+			},
+			{
+				ID:           4,
+				Name:         "TV Samsung UE43U8000FUXRU",
+				Manufacturer: "Samsung",
+				Price:        30499,
+				Amount:       5,
+				Status:       true,
+				Category:     "TV, consoles, and audio",
+			},
 		},
 		url:            "/products?cursor=1&limit=3",
 		wantErr:        false,
@@ -480,11 +573,35 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 4, HasMore: true, Limit: 3},
 	},
 	{
-		name: "general 3 products, 2 limit",
+		name: "success: 3 products (cursor=1 limit=2)",
 		products: []*domain.Product{
-			{ID: 1, Name: "Laptop HUAWEI D16 2024", Manufacturer: "HUAWEI", Price: 57499, Amount: 21, Status: true, Category: "PCs, laptops, peripherals"},
-			{ID: 2, Name: "Microphone Fifine AM8", Manufacturer: "Fifine", Price: 4499, Amount: 18, Status: true, Category: "PC accessories"},
-			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
+			{
+				ID:           1,
+				Name:         "Laptop HUAWEI D16 2024",
+				Manufacturer: "HUAWEI",
+				Price:        57499,
+				Amount:       21,
+				Status:       true,
+				Category:     "PCs, laptops, peripherals",
+			},
+			{
+				ID:           2,
+				Name:         "Microphone Fifine AM8",
+				Manufacturer: "Fifine",
+				Price:        4499,
+				Amount:       18,
+				Status:       true,
+				Category:     "PC accessories",
+			},
+			{
+				ID:           3,
+				Name:         "Apple iPhone 15 128 GB",
+				Manufacturer: "Apple",
+				Price:        56999,
+				Amount:       23,
+				Status:       true,
+				Category:     "Smartphones and photographic equipment",
+			},
 		},
 		url:            "/products?cursor=1&limit=2",
 		wantErr:        false,
@@ -492,9 +609,17 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 3, HasMore: true, Limit: 2},
 	},
 	{
-		name: "general 1 product(ID=3), 3 cursor, 2 limit",
+		name: "success: 1 product (cursor=3 limit=2)",
 		products: []*domain.Product{
-			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
+			{
+				ID:           3,
+				Name:         "Apple iPhone 15 128 GB",
+				Manufacturer: "Apple",
+				Price:        56999,
+				Amount:       23,
+				Status:       true,
+				Category:     "Smartphones and photographic equipment",
+			},
 		},
 		url:            "/products?cursor=3&limit=2",
 		wantErr:        false,
@@ -502,7 +627,7 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 2},
 	},
 	{
-		name:           "general no products",
+		name:           "success: no products",
 		products:       []*domain.Product{},
 		url:            "/products?cursor=1&limit=1",
 		wantErr:        false,
@@ -510,9 +635,17 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 1},
 	},
 	{
-		name: "0 cursor, 1 product",
+		name: "success: 1 product (cursor=0 limit=1)",
 		products: []*domain.Product{
-			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
+			{
+				ID:           3,
+				Name:         "Apple iPhone 15 128 GB",
+				Manufacturer: "Apple",
+				Price:        56999,
+				Amount:       23,
+				Status:       true,
+				Category:     "Smartphones and photographic equipment",
+			},
 		},
 		url:            "/products?cursor=0&limit=1",
 		wantErr:        false,
@@ -520,9 +653,17 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 1},
 	},
 	{
-		name: "-1 cursor, 1 product",
+		name: "success: 1 product (cursor=-1 limit=1)",
 		products: []*domain.Product{
-			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
+			{
+				ID:           3,
+				Name:         "Apple iPhone 15 128 GB",
+				Manufacturer: "Apple",
+				Price:        56999,
+				Amount:       23,
+				Status:       true,
+				Category:     "Smartphones and photographic equipment",
+			},
 		},
 		url:            "/products?cursor=-1&limit=1",
 		wantErr:        false,
@@ -530,9 +671,17 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 1},
 	},
 	{
-		name: "empty cursor and limit",
+		name: "success: empty cursor and limit",
 		products: []*domain.Product{
-			{ID: 3, Name: "Apple iPhone 15 128 GB", Manufacturer: "Apple", Price: 56999, Amount: 23, Status: true, Category: "Smartphones and photographic equipment"},
+			{
+				ID:           3,
+				Name:         "Apple iPhone 15 128 GB",
+				Manufacturer: "Apple",
+				Price:        56999,
+				Amount:       23,
+				Status:       true,
+				Category:     "Smartphones and photographic equipment",
+			},
 		},
 		url:            "/products",
 		wantErr:        false,
@@ -540,32 +689,28 @@ var testsList = []TestList{
 		wantPagination: &domain.Pagination{NextCursor: 0, HasMore: false, Limit: 10},
 	},
 	{
-		name:       "invalid cursor",
-		products:   []*domain.Product{},
+		name:       "error: invalid cursor",
 		url:        "/products?cursor=a",
 		wantErr:    true,
 		wantStatus: 400,
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidCursor.Error()},
 	},
 	{
-		name:       "invalid limit",
-		products:   []*domain.Product{},
+		name:       "error: invalid limit",
 		url:        "/products?limit=a",
 		wantErr:    true,
 		wantStatus: 400,
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidLimit.Error()},
 	},
 	{
-		name:       "error list query",
-		products:   []*domain.Product{},
+		name:       "error: failed list query",
 		url:        "/products",
 		wantErr:    true,
 		wantStatus: 400,
 		wantResp:   domain.ErrorResponse{Message: domain.ErrListQuery.Error()},
 	},
 	{
-		name:       "internal server error",
-		products:   nil,
+		name:       "error: internal server error",
 		url:        "/products",
 		wantErr:    true,
 		wantStatus: 500,
@@ -573,16 +718,16 @@ var testsList = []TestList{
 	},
 }
 
-func TestListProductsHandler(t *testing.T) {
+func TestProductHandler_List(t *testing.T) {
 	for _, test := range testsList {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				listProducts: func(ctx context.Context, cursor int, limit uint64) ([]*domain.Product, int, bool, error) {
-					if test.name == "internal server error" {
+					if test.name == "error: internal server error" {
 						return nil, 0, false, domain.ErrQuery
 					}
 
-					if test.name == "error list query" {
+					if test.name == "error: failed list query" {
 						return nil, 0, false, domain.ErrListQuery
 					}
 
@@ -687,14 +832,14 @@ type TestDelete struct {
 
 var testsDelete = []TestDelete{
 	{
-		name:       "general",
+		name:       "success",
 		url:        "/products/{id}",
 		productID:  "1",
 		wantErr:    false,
 		wantStatus: 204,
 	},
 	{
-		name:       "no product",
+		name:       "error: no product",
 		url:        "/products/{id}",
 		productID:  "2",
 		wantErr:    true,
@@ -702,7 +847,7 @@ var testsDelete = []TestDelete{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrProductsNotFound.Error()},
 	},
 	{
-		name:       "no id provided",
+		name:       "error: no id provided",
 		url:        "/products/{id}",
 		productID:  "",
 		wantErr:    true,
@@ -710,7 +855,7 @@ var testsDelete = []TestDelete{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrIDRequired.Error()},
 	},
 	{
-		name:       "invalid id",
+		name:       "error: invalid id",
 		url:        "/products/{id}",
 		productID:  "a",
 		wantErr:    true,
@@ -718,7 +863,7 @@ var testsDelete = []TestDelete{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrInvalidID.Error()},
 	},
 	{
-		name:       "internal server error",
+		name:       "error: internal server error",
 		url:        "/products/{id}",
 		productID:  "1",
 		wantErr:    true,
@@ -727,18 +872,19 @@ var testsDelete = []TestDelete{
 	},
 }
 
-func TestDeleteProductHandler(t *testing.T) {
+func TestProductHandler_Delete(t *testing.T) {
 	for _, test := range testsDelete {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
 				deleteProduct: func(ctx context.Context, id int) error {
-					if test.name == "internal server error" {
+					if test.name == "error: internal server error" {
 						return domain.ErrQuery
 					}
 
-					if test.name == "no product" {
+					if test.name == "error: no product" {
 						return domain.ErrProductsNotFound
 					}
+
 					return nil
 				},
 			}

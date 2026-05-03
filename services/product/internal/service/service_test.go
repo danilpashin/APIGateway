@@ -61,7 +61,7 @@ type TestCreate struct {
 
 var testsCreate = []TestCreate{
 	{
-		name: "general",
+		name: "success: all values",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -82,13 +82,13 @@ var testsCreate = []TestCreate{
 		wantErr: false,
 	},
 	{
-		name:     "missing name",
+		name:     "error: missing required field: name",
 		input:    domain.CreateProductRequest{},
 		wantErr:  true,
 		wantResp: domain.ErrNameRequired,
 	},
 	{
-		name: "invalid name",
+		name: "error: invalid name format",
 		input: domain.CreateProductRequest{
 			Name: "t",
 		},
@@ -96,7 +96,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidName,
 	},
 	{
-		name: "missing manufacturer",
+		name: "error: missing required field: manufacturer",
 		input: domain.CreateProductRequest{
 			Name: "Test-product",
 		},
@@ -104,7 +104,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrManufacturerRequired,
 	},
 	{
-		name: "invalid manufacturer",
+		name: "error: invalid manufacturer format",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "t",
@@ -113,7 +113,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidManufacturer,
 	},
 	{
-		name: "negative price",
+		name: "error: negative price",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -123,7 +123,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidPrice,
 	},
 	{
-		name: "null price",
+		name: "error: null price",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -133,7 +133,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidPrice,
 	},
 	{
-		name: "negative amount",
+		name: "error: negative amount",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -144,7 +144,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidAmount,
 	},
 	{
-		name: "missing category",
+		name: "error: missing required field: category",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -156,7 +156,7 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrCategoryRequired,
 	},
 	{
-		name: "invalid category",
+		name: "error: invalid category format",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -170,7 +170,7 @@ var testsCreate = []TestCreate{
 	},
 }
 
-func TestCreateProduct(t *testing.T) {
+func TestProductService_Create(t *testing.T) {
 	for _, test := range testsCreate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
@@ -219,7 +219,7 @@ type TestUpdate struct {
 
 var testsUpdate = []TestUpdate{
 	{
-		name: "general",
+		name: "success",
 		input: domain.UpdateProductRequest{
 			Name:         stringPtr("UPD-Test-product"),
 			Manufacturer: stringPtr("UPD-Test-manufacturer"),
@@ -241,7 +241,7 @@ var testsUpdate = []TestUpdate{
 		wantErr: false,
 	},
 	{
-		name: "missing values",
+		name: "error: missing all update values",
 		input: domain.UpdateProductRequest{
 			Name:         nil,
 			Manufacturer: nil,
@@ -255,7 +255,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:  domain.ErrNoUpdateData,
 	},
 	{
-		name: "invalid name",
+		name: "error: invalid name format",
 		input: domain.UpdateProductRequest{
 			Name: stringPtr("t"),
 		},
@@ -264,7 +264,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:  domain.ErrInvalidName,
 	},
 	{
-		name: "invalid manufacturer",
+		name: "error: invalid manufacturer format",
 		input: domain.UpdateProductRequest{
 			Name:         stringPtr("UPD-Test-product"),
 			Manufacturer: stringPtr(""),
@@ -274,7 +274,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:  domain.ErrInvalidManufacturer,
 	},
 	{
-		name: "invalid price",
+		name: "error: invalid price format",
 		input: domain.UpdateProductRequest{
 			Name:         stringPtr("UPD-Test-product"),
 			Manufacturer: stringPtr("UPD-Test-manufacturer"),
@@ -285,7 +285,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:  domain.ErrInvalidPrice,
 	},
 	{
-		name: "invalid amount",
+		name: "error: invalid amount format",
 		input: domain.UpdateProductRequest{
 			Name:         stringPtr("UPD-Test-product"),
 			Manufacturer: stringPtr("UPD-Test-manufacturer"),
@@ -297,7 +297,7 @@ var testsUpdate = []TestUpdate{
 		wantResp:  domain.ErrInvalidAmount,
 	},
 	{
-		name: "invalid category",
+		name: "error: invalid category format",
 		input: domain.UpdateProductRequest{
 			Name:         stringPtr("UPD-Test-product"),
 			Manufacturer: stringPtr("UPD-Test-manufacturer"),
@@ -311,7 +311,7 @@ var testsUpdate = []TestUpdate{
 	},
 }
 
-func TestUpdateProduct(t *testing.T) {
+func TestProductService_Update(t *testing.T) {
 	for _, test := range testsUpdate {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
@@ -363,7 +363,7 @@ type TestGet struct {
 
 var testsGet = []TestGet{
 	{
-		name:      "general",
+		name:      "success",
 		productID: 1,
 		want: &domain.Product{
 			Name:         "Test-product",
@@ -376,20 +376,20 @@ var testsGet = []TestGet{
 		wantErr: false,
 	},
 	{
-		name:      "invalid ID",
+		name:      "error: invalid ID format",
 		productID: -1,
 		wantErr:   true,
 		wantResp:  domain.ErrInvalidID,
 	},
 	{
-		name:      "product not found",
+		name:      "error: product not found",
 		productID: 1,
 		wantErr:   true,
 		wantResp:  domain.ErrProductsNotFound,
 	},
 }
 
-func TestGetProduct(t *testing.T) {
+func TestProductService_Get(t *testing.T) {
 	for _, test := range testsGet {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
@@ -439,7 +439,7 @@ type TestList struct {
 
 var testsList = []TestList{
 	{
-		name:   "general",
+		name:   "success: first two products (cursor=1, limit=2)",
 		cursor: 1,
 		limit:  2,
 		want: []*domain.Product{
@@ -479,8 +479,8 @@ var testsList = []TestList{
 		wantErr: false,
 	},
 	{
-		name:   "list end",
-		cursor: 2,
+		name:   "success: end of list (no more)",
+		cursor: 3,
 		limit:  3,
 		want: []*domain.Product{
 			{
@@ -519,7 +519,7 @@ var testsList = []TestList{
 		wantErr: false,
 	},
 	{
-		name:   "negative cursor and null limit",
+		name:   "success: negative cursor and null limit",
 		cursor: -2,
 		limit:  0,
 		want: []*domain.Product{
@@ -559,7 +559,7 @@ var testsList = []TestList{
 		wantErr: false,
 	},
 	{
-		name:   "50+ limit",
+		name:   "success: limit > 50 clamped to 50",
 		cursor: 1,
 		limit:  100,
 		want: []*domain.Product{
@@ -599,14 +599,14 @@ var testsList = []TestList{
 		wantErr: false,
 	},
 	{
-		name:    "repo error",
+		name:    "error: repository error",
 		cursor:  1,
 		limit:   2,
 		wantErr: true,
 	},
 }
 
-func TestListProducts(t *testing.T) {
+func TestProductService_List(t *testing.T) {
 	for _, test := range testsList {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
@@ -657,19 +657,19 @@ type TestDelete struct {
 
 var testsDelete = []TestDelete{
 	{
-		name:      "general",
+		name:      "success",
 		productID: 1,
 		wantErr:   false,
 	},
 	{
-		name:      "invalid ID",
+		name:      "error: invalid ID",
 		productID: -1,
 		wantErr:   true,
 		wantResp:  domain.ErrInvalidID,
 	},
 }
 
-func TestDeleteProduct(t *testing.T) {
+func TestProductService_Delete(t *testing.T) {
 	for _, test := range testsDelete {
 		t.Run(test.name, func(t *testing.T) {
 			mockRepo := MockProductRepo{
