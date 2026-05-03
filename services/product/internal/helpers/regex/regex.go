@@ -8,7 +8,7 @@ import (
 )
 
 func ValidateName(str string) error {
-	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z\d -,]+$`, str)
+	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z\d, -]+$`, str)
 	if !matched {
 		return domain.ErrInvalidName
 	}
@@ -64,7 +64,7 @@ func ValidateManufacturer(str string) error {
 }
 
 func ValidateCategory(str string) error {
-	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z -,]+$`, str)
+	matched, _ := regexp.MatchString(`^[A-Z][a-zA-Z, -]+$`, str)
 	if !matched {
 		return domain.ErrInvalidCategory
 	}
