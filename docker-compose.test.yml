@@ -29,4 +29,4 @@ services:
       - APP_DB_USER=postgres
       - APP_DB_PASSWORD=test
       - APP_DB_URL=postgres://postgres:test@postgres:5432/products?sslmode=disable
-    command: go test -v -count=1 ./internal/repository/postgres/...
+    command: ./run-products-tests.sh
