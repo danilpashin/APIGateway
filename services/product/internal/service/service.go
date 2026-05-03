@@ -20,29 +20,48 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *domain.CreatePr
 	insertData := make(map[string]any, 0)
 
 	if req.Name != "" {
-		err := regex.ValidateProductName(req.Name)
+		err := regex.ValidateName(req.Name)
 		if err != nil {
 			return nil, domain.ErrInvalidName
 		}
 		insertData["name"] = req.Name
+	} else {
+		return nil, domain.ErrNameRequired
 	}
+
 	if req.Manufacturer != "" {
+		err := regex.ValidateManufacturer(req.Manufacturer)
+		if err != nil {
+			return nil, domain.ErrInvalidManufacturer
+		}
 		insertData["manufacturer"] = req.Manufacturer
+	} else {
+		return nil, domain.ErrManufacturerRequired
 	}
+
 	if req.Price > 0 {
 		insertData["price"] = req.Price
+	} else {
+		return nil, domain.ErrInvalidPrice
 	}
+
 	if req.Amount > 0 {
 		insertData["amount"] = req.Amount
-	}
-	if req.Status {
-		insertData["status"] = req.Status
 	} else {
-		insertData["status"] = true
+		return nil, domain.ErrInvalidAmount
 	}
+
 	if req.Category != "" {
+		err := regex.ValidateCategory(req.Category)
+		if err != nil {
+			return nil, domain.ErrInvalidCategory
+		}
 		insertData["category"] = req.Category
+	} else {
+		return nil, domain.ErrCategoryRequired
 	}
+
+	insertData["status"] = req.Status
 
 	return s.repo.CreateProduct(ctx, insertData)
 }
@@ -51,14 +70,15 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 	updateData := make(map[string]any, 0)
 
 	if req.Name != nil {
-		err := regex.ValidateProductName(*req.Name)
+		err := regex.ValidateName(*req.Name)
 		if err != nil {
-			return nil, err
+			return nil, domain.ErrInvalidName
 		}
 		updateData["name"] = *req.Name
 	}
 	if req.Manufacturer != nil {
-		if *req.Manufacturer == "" {
+		err := regex.ValidateManufacturer(*req.Manufacturer)
+		if err != nil {
 			return nil, domain.ErrInvalidManufacturer
 		}
 		updateData["manufacturer"] = *req.Manufacturer
@@ -76,10 +96,11 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 		updateData["price"] = *req.Price
 	}
 	if req.Category != nil {
-		if *req.Category == "" {
-			return nil, domain.ErrInvalidPrice
+		err := regex.ValidateCategory(*req.Category)
+		if err != nil {
+			return nil, domain.ErrInvalidCategory
 		}
-		updateData["price"] = *req.Price
+		updateData["category"] = *req.Category
 	}
 
 	if len(updateData) == 0 {
