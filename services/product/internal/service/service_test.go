@@ -85,7 +85,7 @@ var testsCreate = []TestCreate{
 		name:     "missing name",
 		input:    domain.CreateProductRequest{},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidName,
+		wantResp: domain.ErrNameRequired,
 	},
 	{
 		name: "invalid name",
@@ -98,14 +98,10 @@ var testsCreate = []TestCreate{
 	{
 		name: "missing manufacturer",
 		input: domain.CreateProductRequest{
-			Name:     "Test-product",
-			Price:    10000,
-			Amount:   10,
-			Status:   true,
-			Category: "Household appliances",
+			Name: "Test-product",
 		},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidManufacturer,
+		wantResp: domain.ErrManufacturerRequired,
 	},
 	{
 		name: "negative price",
@@ -139,7 +135,20 @@ var testsCreate = []TestCreate{
 		wantResp: domain.ErrInvalidAmount,
 	},
 	{
-		name: "missing or not existing category",
+		name: "invalid category",
+		input: domain.CreateProductRequest{
+			Name:         "Test-product",
+			Manufacturer: "test-manufacturer",
+			Price:        10000,
+			Amount:       10,
+			Status:       true,
+			Category:     "h",
+		},
+		wantErr:  true,
+		wantResp: domain.ErrInvalidCategory,
+	},
+	{
+		name: "missing category",
 		input: domain.CreateProductRequest{
 			Name:         "Test-product",
 			Manufacturer: "test-manufacturer",
@@ -148,7 +157,7 @@ var testsCreate = []TestCreate{
 			Status:       true,
 		},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidCategory,
+		wantResp: domain.ErrCategoryRequired,
 	},
 }
 

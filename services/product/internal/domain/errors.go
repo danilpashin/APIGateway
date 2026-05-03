@@ -7,15 +7,18 @@ var (
 	ErrProductExist     = errors.New("product already exists")
 
 	// required values
-	ErrIDRequired = errors.New("id is required")
+	ErrIDRequired           = errors.New("id is required")
+	ErrNameRequired         = errors.New("name is required")
+	ErrManufacturerRequired = errors.New("manufacturer is required")
+	ErrCategoryRequired     = errors.New("category is required")
 
 	// invalid values
 	ErrInvalidID           = errors.New("id must be a number greater than 0")
 	ErrInvalidName         = errors.New("name must be at least 2 characters and begin with Uppercase")
 	ErrInvalidManufacturer = errors.New("manufacturer title must be at least 2 characters")
-	ErrInvalidAmount       = errors.New("amount must be 0 or greater")
 	ErrInvalidPrice        = errors.New("price must be greater than 0")
-	ErrInvalidCategory     = errors.New("category must exist")
+	ErrInvalidAmount       = errors.New("amount must be 0 or greater")
+	ErrInvalidCategory     = errors.New("category must be at least 4 characters, begin with Uppercase and contain only latin letters")
 	ErrInvalidCursor       = errors.New("cursor is not a number")
 	ErrInvalidLimit        = errors.New("limit is not a number")
 
