@@ -15,11 +15,11 @@ import (
 )
 
 type ProductHandler struct {
-	productService service.ProductService
+	service service.ProductServiceInterface
 }
 
-func NewProductHandler(productService service.ProductService) *ProductHandler {
-	return &ProductHandler{productService: productService}
+func NewProductHandler(service service.ProductServiceInterface) *ProductHandler {
+	return &ProductHandler{service: service}
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(r.Context(), &req)
+	product, err := h.service.CreateProduct(r.Context(), &req)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -67,7 +67,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.productService.UpdateProduct(r.Context(), idInt, req)
+	product, err := h.service.UpdateProduct(r.Context(), idInt, req)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -90,7 +90,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		h.handleError(w, domain.ErrInvalidID)
 	}
 
-	product, err := h.productService.GetProduct(r.Context(), idInt)
+	product, err := h.service.GetProduct(r.Context(), idInt)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -122,7 +122,7 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	products, pagination, err := h.productService.ListProducts(r.Context(), cursorInt, uint64(limitInt))
+	products, pagination, err := h.service.ListProducts(r.Context(), cursorInt, uint64(limitInt))
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -148,7 +148,7 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.productService.DeleteProduct(r.Context(), idInt)
+	err = h.service.DeleteProduct(r.Context(), idInt)
 	if err != nil {
 		h.handleError(w, err)
 		return
