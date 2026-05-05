@@ -5,7 +5,6 @@ import (
 	"apigateway/services/product/internal/helpers/regex"
 	"apigateway/services/product/internal/repository/postgres"
 	"context"
-	"time"
 )
 
 type ProductService struct {
@@ -95,6 +94,9 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 		}
 		updateData["price"] = *req.Price
 	}
+	if req.Status != nil {
+		updateData["status"] = *req.Status
+	}
 	if req.Category != nil {
 		err := regex.ValidateCategory(*req.Category)
 		if err != nil {
@@ -106,8 +108,6 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, req *domain.
 	if len(updateData) == 0 {
 		return nil, domain.ErrNoUpdateData
 	}
-
-	updateData["updated_at"] = time.Now()
 
 	return s.repo.UpdateProduct(ctx, id, updateData)
 }
