@@ -19,6 +19,7 @@ func RunMigrations(cmd string, version int) error {
 	if err != nil {
 		return err
 	}
+	defer m.Close()
 
 	switch cmd {
 	case "up":
