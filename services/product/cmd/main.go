@@ -26,6 +26,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// main start the HTTP server or runs database migrations if CLI flags are provided.
 func main() {
 	env.LoadEnv()
 	cfg := config.Load()
@@ -58,6 +59,10 @@ func runServer(cfg *config.Config, db *sql.DB) {
 	gracefulShutdown(&srv, db)
 }
 
+// migrateCLI handles command-line flags to control database migrations.
+// Returns true if a migration command was set, otherwise false.
+// In case of a migration error, it terminates the application with a fatal error.
+// Example: go run main.go --cmd=up --version=1
 func migrateCLI() bool {
 	var cmd string
 	var version int
