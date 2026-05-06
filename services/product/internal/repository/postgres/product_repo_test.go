@@ -13,7 +13,10 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupTestDB(t *testing.T) *ProductRepository {
@@ -28,14 +31,10 @@ func setupTestDB(t *testing.T) *ProductRepository {
 
 	connStr := fmt.Sprintf("postgresql://postgres:test@%s:%s/products?sslmode=disable", dbHost, dbPort)
 	db, err := sql.Open("pgx", connStr)
-	if err != nil {
-		t.Fatal("failed to open database: ", err)
-	}
+	require.NoError(t, err)
 
 	m, err := migrate.New("file://../../../migrations", connStr)
-	if err != nil {
-		t.Fatal("failed to init migrations: ", err)
-	}
+	require.NoError(t, err)
 
 	m.Up()
 
@@ -57,11 +56,10 @@ var insertData = map[string]any{
 	"category":     "Household appliances",
 }
 
-func CreateTestProduct(repo *ProductRepository, t *testing.T) {
-	_, err := repo.CreateProduct(context.Background(), insertData)
-	if err != nil {
-		t.Fatal("failed to create test product: ", err)
-	}
+func CreateTestProduct(repo *ProductRepository, t *testing.T) *domain.Product {
+	product, err := repo.CreateProduct(context.Background(), insertData)
+	require.NoError(t, err)
+	return product
 }
 
 type TestCreate struct {
@@ -83,21 +81,14 @@ var testCreate = TestCreate{
 }
 
 func TestProductRepository_Create(t *testing.T) {
-	test := testCreate
 	repo := setupTestDB(t)
-	t.Run(test.name, func(t *testing.T) {
+	t.Run(testCreate.name, func(t *testing.T) {
 		product, err := repo.CreateProduct(context.Background(), insertData)
-		if err != nil {
-			t.Fatal("failed to create test product: ", err)
-		}
+		require.NoError(t, err)
 
-		opts := cmp.FilterPath(func(p cmp.Path) bool {
-			return p.String() == "CreatedAt" || p.String() == "UpdatedAt"
-		}, cmp.Ignore())
-
-		if diff := cmp.Diff(test.product, product, opts); diff != "" {
-			t.Fatalf("mismatch (-want +got):\n%s", diff)
-		}
+		opts := cmpopts.IgnoreFields(domain.Product{}, "CreatedAt", "UpdatedAt")
+		diff := cmp.Diff(testCreate.product, product, opts)
+		assert.Empty(t, diff, "mismatch (-want +got):\n%s", diff)
 	})
 }
 
@@ -133,131 +124,75 @@ func TestProductRepository_Update(t *testing.T) {
 	CreateTestProduct(repo, t)
 	t.Run(testUpdate.name, func(t *testing.T) {
 		newProduct, err := repo.UpdateProduct(context.Background(), 1, testUpdate.updateData)
-		if err != nil {
-			t.Fatal("failed to update test product: ", err)
-		}
+		require.NoError(t, err)
 
-		opts := cmp.FilterPath(func(p cmp.Path) bool {
-			return p.String() == "CreatedAt" || p.String() == "UpdatedAt"
-		}, cmp.Ignore())
-
-		if diff := cmp.Diff(testUpdate.newProduct, newProduct, opts); diff != "" {
-			t.Fatalf("mismatch (-want +got):\n%s", diff)
-		}
+		opts := cmpopts.IgnoreFields(domain.Product{}, "CreatedAt", "UpdatedAt")
+		diff := cmp.Diff(testUpdate.newProduct, newProduct, opts)
+		assert.Empty(t, diff, "mismatch (-want +got):\n%s", diff)
 	})
 }
 
 type TestGet struct {
 	name      string
 	productID int
-	product   *domain.Product
 }
 
 var testGet = TestGet{
 	name:      "success",
 	productID: 1,
-	product: &domain.Product{
-		ID:           1,
-		Name:         "test-product",
-		Manufacturer: "test-manufacturer",
-		Price:        10000,
-		Amount:       10,
-		Status:       true,
-		Category:     "Household appliances",
-	},
 }
 
 func TestProductRepository_Get(t *testing.T) {
 	repo := setupTestDB(t)
-	CreateTestProduct(repo, t)
 	t.Run(testGet.name, func(t *testing.T) {
+		expected := CreateTestProduct(repo, t)
 		product, err := repo.GetProduct(context.Background(), testGet.productID)
-		if err != nil {
-			t.Fatal("failed to get test product: ", err)
-		}
+		require.NoError(t, err)
 
-		opts := cmp.FilterPath(func(p cmp.Path) bool {
-			return p.String() == "CreatedAt" || p.String() == "UpdatedAt"
-		}, cmp.Ignore())
-
-		if diff := cmp.Diff(testGet.product, product, opts); diff != "" {
-			t.Fatalf("mismatсh (-want +got):\n%s", diff)
-		}
+		opts := cmpopts.IgnoreFields(domain.Product{}, "CreatedAt", "UpdatedAt")
+		diff := cmp.Diff(expected, product, opts)
+		assert.Empty(t, diff, "mismatch (-want +got):\n%s", diff)
 	})
 }
 
 type TestList struct {
-	name         string
-	cursor       int
-	limit        uint64
-	listProducts []*domain.Product
-	newCursor    int
-	hasMore      bool
+	name    string
+	cursor  int
+	limit   uint64
+	len     int
+	hasMore bool
 }
 
 var testList = TestList{
-	name:   "success",
-	cursor: 1,
-	limit:  2,
-	listProducts: []*domain.Product{
-		{
-			ID:           1,
-			Name:         "test-product",
-			Manufacturer: "test-manufacturer",
-			Price:        10000,
-			Amount:       10,
-			Status:       true,
-			Category:     "Household appliances",
-		},
-		{
-			ID:           2,
-			Name:         "test-product",
-			Manufacturer: "test-manufacturer",
-			Price:        10000,
-			Amount:       10,
-			Status:       true,
-			Category:     "Household appliances",
-		},
-		{
-			ID:           3,
-			Name:         "test-product",
-			Manufacturer: "test-manufacturer",
-			Price:        10000,
-			Amount:       10,
-			Status:       true,
-			Category:     "Household appliances",
-		},
-	},
-	newCursor: 3,
-	hasMore:   true,
+	name:    "success",
+	cursor:  1,
+	limit:   2,
+	len:     3,
+	hasMore: true,
 }
 
 func TestProductRepository_List(t *testing.T) {
 	repo := setupTestDB(t)
-	CreateTestProduct(repo, t)
-	CreateTestProduct(repo, t)
-	CreateTestProduct(repo, t)
+
+	var createdProducts []*domain.Product
+	for range testList.len {
+		p := CreateTestProduct(repo, t)
+		createdProducts = append(createdProducts, p)
+	}
+
 	t.Run(testList.name, func(t *testing.T) {
+		expected := createdProducts[:testList.limit]
+
 		products, newCursor, hasMore, err := repo.ListProducts(context.Background(), testList.cursor, testList.limit)
-		if err != nil {
-			t.Fatal("failed to get list of test products: ", err)
-		}
+		require.NoError(t, err)
 
-		opts := cmp.FilterPath(func(p cmp.Path) bool {
-			return p.String() == "CreatedAt" || p.String() == "UpdatedAt"
-		}, cmp.Ignore())
+		assert.Len(t, products, int(testList.limit))
+		opts := cmpopts.IgnoreFields(domain.Product{}, "CreatedAt", "UpdatedAt")
+		diff := cmp.Diff(expected, products, opts)
+		assert.Empty(t, diff, "mismatch (-want +got):\n%s", diff)
 
-		if diff := cmp.Diff(testList.listProducts[:testList.limit], products, opts); diff != "" {
-			t.Errorf("mismatch (-want +got):\n%s", diff)
-		}
-
-		if newCursor != testList.newCursor {
-			t.Errorf("expected new cursor %d, got: %d", testList.newCursor, newCursor)
-		}
-
-		if hasMore != testList.hasMore {
-			t.Fatalf("expected has more %v, got: %v", testList.hasMore, hasMore)
-		}
+		assert.Equal(t, createdProducts[testList.len-1].ID, newCursor)
+		assert.True(t, hasMore)
 	})
 }
 
@@ -278,8 +213,6 @@ func TestProductRepository_Delete(t *testing.T) {
 	CreateTestProduct(repo, t)
 	t.Run(testDelete.name, func(t *testing.T) {
 		err := repo.DeleteProduct(context.Background(), testDelete.productID)
-		if err != nil {
-			t.Fatal("failed to delete product: ", err)
-		}
+		require.NoError(t, err)
 	})
 }
