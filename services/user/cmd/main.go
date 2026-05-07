@@ -87,7 +87,6 @@ func newRouter(db *sql.DB) *chi.Mux {
 
 	r.Use(middleware.LoggingMiddleware)
 	r.Get("/health", healthHandler(db))
-	r.Get("/users", userHandler.CheckHandler)
 	r.Post("/users/register", userHandler.CreateUser)
 	r.Put("/users/{id}", userHandler.UpdateUser)
 	r.Get("/users/{id}", userHandler.GetUser)
