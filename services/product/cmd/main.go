@@ -84,7 +84,7 @@ func migrateCLI() bool {
 }
 
 func newRouter(db *sql.DB) *chi.Mux {
-	productRepo := postgres.NewPostgresProductRepository(db)
+	productRepo := postgres.NewProductRepository(db)
 	productService := service.NewProductService(productRepo)
 	productHandler := handler.NewProductHandler(productService)
 

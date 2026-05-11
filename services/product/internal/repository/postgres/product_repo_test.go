@@ -44,7 +44,7 @@ func setupTestDB(t *testing.T) *ProductRepository {
 		db.Close()
 	})
 
-	return NewPostgresProductRepository(db)
+	return NewProductRepository(db)
 }
 
 var insertData = map[string]any{
