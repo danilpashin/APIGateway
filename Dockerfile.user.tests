@@ -1,0 +1,9 @@
+FROM golang:1.26 AS builder
+WORKDIR /app
+
+COPY pkg ./pkg
+COPY services/user ./services/user
+
+WORKDIR /app/services/user
+
+ENV GOWORK=off

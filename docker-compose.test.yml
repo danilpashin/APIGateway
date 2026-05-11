@@ -1,7 +1,7 @@
 services:
-  postgres:
+  postgres-products:
     image: postgres:15-alpine
-    container_name: postgres
+    container_name: postgres-products
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=test
@@ -21,12 +21,43 @@ services:
       context: .
       dockerfile: Dockerfile.product.tests
     depends_on:
-      postgres:
+      postgres-products:
         condition: service_healthy
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=postgres-products
       - DB_PORT=5432
       - APP_DB_USER=postgres
       - APP_DB_PASSWORD=test
       - APP_DB_URL=postgres://postgres:test@postgres:5432/products?sslmode=disable
-    command: ./run-products-tests.sh
+    command: ./run-product-tests.sh
+
+  postgres-users:
+    image: postgres:15-alpine
+    container_name: postgres-users
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=users
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  user-tests:
+    container_name: user-tests
+    build:
+      context: .
+      dockerfile: Dockerfile.user.tests
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres-users
+      - DB_PORT=5432
+      - APP_DB_USER=postgres
+      - APP_DB_PASSWORD=test
+      - APP_DB_URL=postgres://postgres:test@postgres:5432/users?sslmode=disable
+    command: ./run-user-tests.sh
