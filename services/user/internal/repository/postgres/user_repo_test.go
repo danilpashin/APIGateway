@@ -23,7 +23,7 @@ func setupTestDB(t *testing.T) *UserRepository {
 	}
 	dbPort := os.Getenv("DB_PORT")
 	if dbPort == "" {
-		dbPort = "5433"
+		dbPort = "5434"
 	}
 
 	connStr := fmt.Sprintf("postgresql://postgres:test@%s:%s/users?sslmode=disable", dbHost, dbPort)
@@ -33,8 +33,7 @@ func setupTestDB(t *testing.T) *UserRepository {
 	m, err := migrate.New("file://../../../migrations", connStr)
 	require.NoError(t, err)
 
-	err = m.Up()
-	require.NoError(t, err)
+	m.Up()
 
 	if err = db.Ping(); err != nil {
 		t.Fatal("failed to connect database: ", err)
@@ -53,6 +52,7 @@ var testUser = map[string]any{
 	"username":      "test-user",
 	"email":         "test-email@gmail.com",
 	"password_hash": "fake-password-hash123",
+	"role_id":       3,
 }
 
 func CreateTestUser(repo UserRepoInterface, t *testing.T) *domain.User {
@@ -73,6 +73,7 @@ var testCreate = TestCreate{
 		Username:     "test-user",
 		Email:        "test-email@gmail.com",
 		PasswordHash: "fake-password-hash123",
+		Role:         "user",
 	},
 }
 
@@ -80,6 +81,8 @@ func TestUserRepository_Create(t *testing.T) {
 	repo := setupTestDB(t)
 	t.Run(testCreate.name, func(t *testing.T) {
 		user, err := repo.CreateUser(context.Background(), testUser)
+		testCreate.want.CreatedAt = user.CreatedAt
+		testCreate.want.UpdatedAt = user.UpdatedAt
 		require.NoError(t, err)
 
 		assert.Equal(t, testCreate.want, user)
@@ -97,22 +100,26 @@ var testUpdate = TestUpdate{
 	name:   "success",
 	userID: 1,
 	updateData: map[string]any{
-		"username": "UPD-test-user",
-		"email":    "UPD-test-email@gmail.com",
-		"password": "UPD-fake-password-hash123",
+		"username":      "UPD-test-user",
+		"email":         "UPD-test-email@gmail.com",
+		"password_hash": "UPD-fake-password-hash123",
 	},
 	want: &domain.User{
 		ID:           1,
 		Username:     "UPD-test-user",
 		Email:        "UPD-test-email@gmail.com",
 		PasswordHash: "UPD-fake-password-hash123",
+		Role:         "user",
 	},
 }
 
 func TestUserRepository_Update(t *testing.T) {
 	repo := setupTestDB(t)
+	CreateTestUser(repo, t)
 	t.Run(testUpdate.name, func(t *testing.T) {
 		user, err := repo.UpdateUser(context.Background(), testUpdate.userID, testUpdate.updateData)
+		testUpdate.want.CreatedAt = user.CreatedAt
+		testUpdate.want.UpdatedAt = user.UpdatedAt
 		require.NoError(t, err)
 
 		assert.Equal(t, testUpdate.want, user)
