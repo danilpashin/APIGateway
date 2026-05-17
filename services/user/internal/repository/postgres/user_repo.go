@@ -4,6 +4,9 @@ import (
 	"apigateway/services/user/internal/domain"
 	"context"
 	"database/sql"
+	"errors"
+	"log"
+	"slices"
 
 	"github.com/Masterminds/squirrel"
 )
@@ -78,9 +81,60 @@ func (r *UserRepository) GetUser(ctx context.Context, id int) (*domain.User, err
 }
 
 func (r *UserRepository) ListUsers(ctx context.Context, cursor int, limit uint64) ([]*domain.User, int, bool, error) {
-	return nil, 0, false, nil
+	extLimit := limit + 1
+	query := `SELECT u.id, u.username, u.email, u.password_hash, u.created_at, u.updated_at, r.name AS role_name FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id >= $1 LIMIT $2`
+
+	rows, err := r.db.QueryContext(ctx, query, cursor, extLimit)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	defer rows.Close()
+
+	listUsers := make([]*domain.User, 0, int(extLimit))
+	for rows.Next() {
+		var user domain.User
+		err = rows.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &user.Role)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		listUsers = append(listUsers, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, false, err
+	}
+
+	if len(listUsers) > int(limit) {
+		nextCursor := listUsers[int(limit)].ID
+		hasMore := true
+		return listUsers[:limit], nextCursor, hasMore, nil
+	}
+	listUsersClip := slices.Clip(listUsers)
+
+	return listUsersClip, 0, false, nil
 }
 
 func (r *UserRepository) DeleteUser(ctx context.Context, id int) error {
+	query := `DELETE FROM users WHERE id = $1`
+
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.ErrUserNotFound
+		}
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		log.Println(err)
+		return errors.New("internal server error")
+	}
+
+	if rows != 1 {
+		log.Println("expected to affect 1 row, affected: ", rows)
+		return errors.New("internal server error")
+	}
+
 	return nil
 }
