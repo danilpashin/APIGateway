@@ -46,3 +46,19 @@ type GetUserResponse struct {
 	Username  string    `json:"username"`
 	CreatedAt time.Time `json:"createdAt"`
 }
+
+// ===== LIST =====
+type ListUsersRequest struct{}
+
+type ListUsersResponse struct{}
+
+type Pagination struct {
+	NextCursor int    `json:"next_cursor"`
+	HasMore    bool   `json:"has_more"`
+	Limit      uint64 `json:"limit"`
+}
+
+// ===== DELETE =====
+type DeleteUserRequest struct{}
+
+type DeleteUserResponse struct{}
