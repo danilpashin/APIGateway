@@ -13,3 +13,12 @@ var (
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
 	ErrInvalidJSON     = errors.New("invalid JSON")
 )
+
+type ErrorResponse struct {
+	Message string            `json:"error"`
+	Details map[string]string `json:"details,omitempty"`
+}
+
+func (e ErrorResponse) Error() string {
+	return e.Message
+}
