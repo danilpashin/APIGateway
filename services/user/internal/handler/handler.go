@@ -20,10 +20,6 @@ func NewUserHandler(service service.UserServiceInterface) *UserHandler {
 	return &UserHandler{service: service}
 }
 
-func (h *UserHandler) CheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Basic handler check"))
-}
-
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var req domain.CreateUserRequest
