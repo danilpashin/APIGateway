@@ -86,3 +86,29 @@ func (s *UserService) GetUser(ctx context.Context, id int) (*domain.User, error)
 
 	return s.repo.GetUser(ctx, id)
 }
+
+func (s *UserService) ListUsers(ctx context.Context, cursor int, limit uint64) ([]*domain.User, *domain.Pagination, error) {
+	if cursor < 0 {
+		cursor = 0
+	}
+	if limit <= 0 {
+		limit = 10
+	} else if limit > 50 {
+		limit = 50
+	}
+
+	listUsers, nextCursor, hasMore, err := s.repo.ListUsers(ctx, cursor, limit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return listUsers, &domain.Pagination{NextCursor: nextCursor, HasMore: hasMore, Limit: limit}, nil
+}
+
+func (s *UserService) DeleteUser(ctx context.Context, id int) error {
+	if id <= 0 {
+		return domain.ErrInvalidID
+	}
+
+	return s.repo.DeleteUser(ctx, id)
+}
