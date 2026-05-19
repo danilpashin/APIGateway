@@ -102,42 +102,44 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) handleError(w http.ResponseWriter, err error) {
+	var statusCode int
+	var errResp domain.ErrorResponse
+
 	switch {
+	case errors.As(err, &errResp):
+		statusCode = http.StatusBadRequest
+
 	case errors.Is(err, domain.ErrUserNotFound):
-		http.Error(w, domain.ErrUserNotFound.Error(), http.StatusNotFound)
-		return
+		statusCode = http.StatusNotFound
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrUserExist):
-		http.Error(w, domain.ErrUserExist.Error(), http.StatusConflict)
-		return
-
-	case errors.Is(err, domain.ErrRoleNotFound):
-		http.Error(w, domain.ErrRoleNotFound.Error(), http.StatusNotFound)
-		return
-
-	case errors.Is(err, domain.ErrIDRequired):
-		http.Error(w, domain.ErrIDRequired.Error(), http.StatusBadRequest)
-		return
-
-	case errors.Is(err, domain.ErrWrongPassword):
-		http.Error(w, domain.ErrWrongPassword.Error(), http.StatusBadRequest)
-		return
-
-	case errors.Is(err, domain.ErrNoInsertData):
-		http.Error(w, domain.ErrNoInsertData.Error(), http.StatusBadRequest)
-		return
-
-	case errors.Is(err, domain.ErrInvalidID):
-		http.Error(w, domain.ErrInvalidID.Error(), http.StatusBadRequest)
-		return
+		statusCode = http.StatusConflict
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrInvalidJSON):
-		http.Error(w, domain.ErrInvalidJSON.Error(), http.StatusBadRequest)
-		return
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
+
+	case errors.Is(err, domain.ErrIDRequired):
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
+
+	case errors.Is(err, domain.ErrInvalidID):
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	default:
-		log.Print("internal server error: ", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+		statusCode = http.StatusInternalServerError
+		errResp = domain.ErrorResponse{Message: "internal server error"}
+		log.Printf("unexpected error: %v", err)
 	}
+
+	JSONError(w, statusCode, errResp)
+}
+
+func JSONError(w http.ResponseWriter, statusCode int, err domain.ErrorResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(err)
 }
