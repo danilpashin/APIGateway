@@ -59,7 +59,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.Update
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(req.Password)); err != nil {
-		return nil, domain.ErrWrongPassword
+		return nil, domain.ErrWrongEmailOrPassword
 	} else {
 		if req.Email != "" {
 			updateData["email"] = req.Email

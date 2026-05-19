@@ -107,14 +107,14 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	cursorStr := r.URL.Query().Get("cursor")
 	cursor, err := strconv.Atoi(cursorStr)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(w, domain.ErrInvalidCursor)
 		return
 	}
 
 	limitStr := r.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(w, domain.ErrInvalidLimit)
 		return
 	}
 
@@ -135,15 +135,20 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	idStr := chi.URLParam(r, "id")
+	if idStr == "" {
+		h.handleError(w, domain.ErrIDRequired)
+		return
+	}
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(w, domain.ErrInvalidID)
 		return
 	}
 
 	err = h.service.DeleteUser(context.Background(), idInt)
 	if err != nil {
 		h.handleError(w, err)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -174,6 +179,18 @@ func (h *UserHandler) handleError(w http.ResponseWriter, err error) {
 		errResp = domain.ErrorResponse{Message: err.Error()}
 
 	case errors.Is(err, domain.ErrInvalidID):
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
+
+	case errors.Is(err, domain.ErrInvalidCursor):
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
+
+	case errors.Is(err, domain.ErrInvalidLimit):
+		statusCode = http.StatusBadRequest
+		errResp = domain.ErrorResponse{Message: err.Error()}
+
+	case errors.Is(err, domain.ErrNoInsertData):
 		statusCode = http.StatusBadRequest
 		errResp = domain.ErrorResponse{Message: err.Error()}
 

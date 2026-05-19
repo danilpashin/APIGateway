@@ -3,15 +3,20 @@ package domain
 import "errors"
 
 var (
-	ErrUserNotFound    = errors.New("user not found")
-	ErrRoleNotFound    = errors.New("role not found")
-	ErrUserExist       = errors.New("user already exist")
+	// Business errors
+	ErrUserNotFound         = errors.New("user not found")
+	ErrRoleNotFound         = errors.New("role not found")
+	ErrUserExist            = errors.New("user already exists")
+	ErrWrongEmailOrPassword = errors.New("invalid email or password")
+
+	// Validation errors
 	ErrIDRequired      = errors.New("id is required")
-	ErrWrongPassword   = errors.New("wrong password")
-	ErrNoInsertData    = errors.New("insert data is empty or one of the fields is not filled")
-	ErrInvalidID       = errors.New("id must be a number greater than 0")
+	ErrInvalidID       = errors.New("id must be a positive number")
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
-	ErrInvalidJSON     = errors.New("invalid JSON")
+	ErrInvalidCursor   = errors.New("invalid cursor value")
+	ErrInvalidLimit    = errors.New("limit must be between 1 and 100")
+	ErrInvalidJSON     = errors.New("invalid json format")
+	ErrNoInsertData    = errors.New("required fields are missing")
 )
 
 type ErrorResponse struct {
