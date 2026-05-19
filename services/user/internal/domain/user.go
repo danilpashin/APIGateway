@@ -50,7 +50,10 @@ type GetUserResponse struct {
 // ===== LIST =====
 type ListUsersRequest struct{}
 
-type ListUsersResponse struct{}
+type ListUsersResponse struct {
+	Users      []*User
+	Pagination *Pagination
+}
 
 type Pagination struct {
 	NextCursor int    `json:"next_cursor"`
