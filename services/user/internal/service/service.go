@@ -82,6 +82,10 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.Update
 		}
 	}
 
+	if len(updateData) == 0 {
+		return nil, domain.ErrNoUpdateData
+	}
+
 	return s.repo.UpdateUser(ctx, id, updateData)
 }
 
