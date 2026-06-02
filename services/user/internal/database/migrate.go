@@ -10,9 +10,9 @@ import (
 
 func RunMigrations(cmd string, version int) error {
 	log.Printf("Running migration: %s", cmd)
-	connStr := env.GetEnv("MIGRATION_DB_URL")
+	connStr := env.GetEnv("USER_MIGRATION_DB_URL")
 	if connStr == "" {
-		return errors.New("MIGRATION_DB_URL is required")
+		return errors.New("USER_MIGRATION_DB_URL is required")
 	}
 
 	m, err := migrate.New("file://migrations", connStr)

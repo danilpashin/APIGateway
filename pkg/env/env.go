@@ -28,9 +28,9 @@ func LoadEnv() {
 			return
 		}
 
-		path = filepath.Join(curr, "go.mod")
+		path = filepath.Join(curr, "go.work")
 		if _, err = os.Stat(path); err == nil {
-			log.Print("reached project root(go.mod) but .env is not found")
+			log.Print("reached project root(go.work) but .env is not found")
 		}
 		parent := filepath.Dir(curr)
 		if parent == curr {

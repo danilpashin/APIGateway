@@ -13,11 +13,11 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		HTTPPort:   env.GetEnvAsInt("HTTP_PORT", 8081),
-		DBHost:     env.GetEnv("DB_HOST"),
-		DBName:     env.GetEnv("DB_NAME"),
-		DBPort:     env.GetEnvAsInt("DB_PORT", 5432),
-		DBUser:     env.GetEnv("APP_DB_USER"),
-		DBPassword: env.GetEnv("APP_DB_PASSWORD"),
+		HTTPPort:   env.GetEnvAsInt("PRODUCT_PORT", 8082),
+		DBHost:     env.GetEnv("PRODUCT_DB_HOST"),
+		DBName:     env.GetEnv("PRODUCT_DB_NAME"),
+		DBPort:     env.GetEnvAsInt("PRODUCT_DB_PORT", 5433),
+		DBUser:     env.GetEnv("PRODUCT_DB_USER"),
+		DBPassword: env.GetEnv("PRODUCT_DB_PASSWORD"),
 	}
 }

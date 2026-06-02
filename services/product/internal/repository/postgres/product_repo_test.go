@@ -20,16 +20,20 @@ import (
 )
 
 func setupTestDB(t *testing.T) *ProductRepository {
-	dbHost := os.Getenv("DB_HOST")
+	dbHost := os.Getenv("PRODUCT_DB_HOST")
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
-	dbPort := os.Getenv("DB_PORT")
+	dbPort := os.Getenv("PRODUCT_DB_PORT")
 	if dbPort == "" {
 		dbPort = "5433"
 	}
+	dbName := os.Getenv("PRODUCT_DB_NAME")
+	if dbName == "" {
+		dbName = "product"
+	}
 
-	connStr := fmt.Sprintf("postgresql://postgres:test@%s:%s/products?sslmode=disable", dbHost, dbPort)
+	connStr := fmt.Sprintf("postgresql://postgres:test@%s:%s/%s?sslmode=disable", dbHost, dbPort, dbName)
 	db, err := sql.Open("pgx", connStr)
 	require.NoError(t, err)
 

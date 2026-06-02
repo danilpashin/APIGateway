@@ -102,9 +102,9 @@ func newRouter(db *sql.DB) *chi.Mux {
 }
 
 func initDB() *sql.DB {
-	connStr := env.GetEnv("APP_DB_URL")
+	connStr := env.GetEnv("PRODUCT_DB_URL")
 	if connStr == "" {
-		log.Fatalf("APP_DB_URL is required")
+		log.Fatalf("PRODUCT_DB_URL is required")
 	}
 
 	db, err := database.NewDB(connStr)

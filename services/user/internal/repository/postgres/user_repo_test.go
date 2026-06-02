@@ -17,16 +17,20 @@ import (
 )
 
 func setupTestDB(t *testing.T) *UserRepository {
-	dbHost := os.Getenv("DB_HOST")
+	dbHost := os.Getenv("USER_DB_HOST")
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
-	dbPort := os.Getenv("DB_PORT")
+	dbPort := os.Getenv("USER_DB_PORT")
 	if dbPort == "" {
 		dbPort = "5434"
 	}
+	dbName := os.Getenv("USER_DB_NAME")
+	if dbName == "" {
+		dbName = "user"
+	}
 
-	connStr := fmt.Sprintf("postgresql://postgres:test@%s:%s/users?sslmode=disable", dbHost, dbPort)
+	connStr := fmt.Sprintf("postgresql://postgres:test@%s:%s/%s?sslmode=disable", dbHost, dbPort, dbName)
 	db, err := sql.Open("pgx", connStr)
 	require.NoError(t, err)
 
