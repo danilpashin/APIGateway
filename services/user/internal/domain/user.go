@@ -28,10 +28,10 @@ type CreateUserResponse struct {
 
 // ===== UPDATE =====
 type UpdateUserRequest struct {
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	Password    string `json:"oldPassword"`
-	NewPassword string `json:"newPassword"`
+	Username    *string `json:"username"`
+	Email       *string `json:"email"`
+	Password    *string `json:"oldPassword"`
+	NewPassword *string `json:"newPassword"`
 }
 
 type UpdateUserResponse struct {

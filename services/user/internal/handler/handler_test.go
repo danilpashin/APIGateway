@@ -149,10 +149,10 @@ var testsUpdate = []TestUpdate{
 		resp:   &domain.UpdateUserResponse{Username: "UPD-test-user", Email: "upd-test@gmail.com"},
 		mockID: 1,
 		mockInput: &domain.UpdateUserRequest{
-			Username:    "UPD-test-user",
-			Email:       "upd-test@gmail.com",
-			Password:    "12345678",
-			NewPassword: "new_password123",
+			Username:    stringPtr("UPD-test-user"),
+			Email:       stringPtr("upd-test@gmail.com"),
+			Password:    stringPtr("12345678"),
+			NewPassword: stringPtr("new_password123"),
 		},
 		mockResp:   &domain.User{ID: 1, Username: "UPD-test-user", Email: "upd-test@gmail.com", PasswordHash: "new_passwordhash123"},
 		wantErr:    false,
@@ -198,6 +198,8 @@ var testsUpdate = []TestUpdate{
 		wantResp:   domain.ErrorResponse{Message: domain.ErrUserNotFound.Error()},
 	},
 }
+
+func stringPtr(s string) *string { return &s }
 
 func TestUserHandler_Update(t *testing.T) {
 	for _, tt := range testsUpdate {

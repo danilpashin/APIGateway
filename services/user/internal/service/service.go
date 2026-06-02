@@ -54,25 +54,31 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.Update
 
 	updateData := make(map[string]any)
 
-	if req.Username != "" {
-		updateData["username"] = req.Username
+	if req.Username != nil {
+		if *req.Username != "" {
+			updateData["username"] = *req.Username
+		}
 	}
 
-	if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(req.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(*req.Password)); err != nil {
 		return nil, domain.ErrWrongEmailOrPassword
 	} else {
-		if req.Email != "" {
-			updateData["email"] = req.Email
+		if req.Email != nil {
+			if *req.Email != "" {
+				updateData["email"] = *req.Email
+			}
 		}
-		if req.NewPassword != "" {
-			if len(req.NewPassword) < 8 {
-				return nil, domain.ErrInvalidPassword
+		if req.NewPassword != nil {
+			if *req.NewPassword != "" {
+				if len(*req.NewPassword) < 8 {
+					return nil, domain.ErrInvalidPassword
+				}
+				passwordHash, err := bcrypt.GenerateFromPassword([]byte(*req.NewPassword), 10)
+				if err != nil {
+					return nil, errors.New("failed to generate password hash")
+				}
+				updateData["password_hash"] = passwordHash
 			}
-			passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
-			if err != nil {
-				return nil, errors.New("failed to generate password hash")
-			}
-			updateData["password_hash"] = passwordHash
 		}
 	}
 
