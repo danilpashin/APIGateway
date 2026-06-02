@@ -32,7 +32,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *domain.CreateUserRequ
 		insertData["email"] = req.Email
 	}
 	if req.Password != "" {
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost)
 		if err != nil {
 			return nil, errors.New("failed to generate password hash")
 		}
@@ -73,7 +73,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.Update
 				if len(*req.NewPassword) < 8 {
 					return nil, domain.ErrInvalidPassword
 				}
-				passwordHash, err := bcrypt.GenerateFromPassword([]byte(*req.NewPassword), 10)
+				passwordHash, err := bcrypt.GenerateFromPassword([]byte(*req.NewPassword), bcryptCost)
 				if err != nil {
 					return nil, errors.New("failed to generate password hash")
 				}
