@@ -37,6 +37,7 @@
 
 ## 🏗️ Current Architecture and Development Progress
 Client (REST) → [ User Service ] → PostgreSQL (CRUD DB User)
+
 Client (REST) → [ Product Service ] → PostgreSQL (CRUD DB User)
 
 ## 💻 How to Run
