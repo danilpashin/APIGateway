@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=test
-      - POSTGRES_DB=products
+      - POSTGRES_DB=products_db
     ports:
       - "5433:5432"
     healthcheck:
@@ -13,7 +13,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
 
   product-tests:
     container_name: product-tests
@@ -24,12 +23,12 @@ services:
       postgres-products:
         condition: service_healthy
     environment:
-      - DB_HOST=postgres-products
-      - DB_PORT=5432
-      - APP_DB_USER=postgres
-      - APP_DB_PASSWORD=test
-      - APP_DB_URL=postgres://postgres:test@postgres:5432/products?sslmode=disable
-    command: ./run-product-tests.sh
+      - PRODUCT_POSTGRES_DB_USER=postgres
+      - PRODUCT_POSTGRES_DB_PASSWORD=test
+      - PRODUCT_DB_HOST=postgres-products
+      - PRODUCT_DB_PORT=5432
+      - PRODUCT_DB_NAME=products_db
+    command: go test -v -cover ./internal/handler/... ./internal/service/... ./internal/repository/...
 
   postgres-users:
     image: postgres:15-alpine
@@ -37,7 +36,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=test
-      - POSTGRES_DB=users
+      - POSTGRES_DB=users_db
     ports:
       - "5434:5432"
     healthcheck:
@@ -55,9 +54,9 @@ services:
       postgres-users:
         condition: service_healthy
     environment:
-      - DB_HOST=postgres-users
-      - DB_PORT=5432
-      - APP_DB_USER=postgres
-      - APP_DB_PASSWORD=test
-      - APP_DB_URL=postgres://postgres:test@postgres:5432/users?sslmode=disable
-    command: ./run-user-tests.sh
+      - USER_POSTGRES_DB_USER=postgres
+      - USER_POSTGRES_DB_PASSWORD=test
+      - USER_DB_HOST=postgres-users
+      - USER_DB_PORT=5432
+      - USER_DB_NAME=users_db
+    command: go test -v -cover ./internal/handler/... ./internal/service/... ./internal/repository/...
