@@ -1,10 +1,16 @@
 FROM golang:1.26 AS builder
 WORKDIR /app
-COPY go.mod go.sum ./
-COPY services/user services/user
+COPY pkg ./pkg
+COPY services/user/go.mod services/user/go.sum ./services/user/
 
+WORKDIR /app/services/user
 RUN go mod download
-RUN go build -o user ./services/user/cmd
+
+WORKDIR /app
+COPY services/user ./services/user
+
+WORKDIR /app/services/user
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/user ./cmd
 
 FROM alpine:latest
 COPY --from=builder /app/user /user

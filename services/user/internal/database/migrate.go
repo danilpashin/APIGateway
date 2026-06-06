@@ -1,11 +1,13 @@
 package database
 
 import (
+	"apigateway/services/user/migrations"
 	"errors"
 	"log"
 	"pkg/env"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
 func RunMigrations(cmd string, version int) error {
@@ -15,10 +17,16 @@ func RunMigrations(cmd string, version int) error {
 		return errors.New("USER_MIGRATION_DB_URL is required")
 	}
 
-	m, err := migrate.New("file://migrations", connStr)
+	d, err := iofs.New(migrations.FS, ".")
 	if err != nil {
 		return err
 	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", d, connStr)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
 
 	switch cmd {
 	case "up":

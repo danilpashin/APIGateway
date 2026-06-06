@@ -1,12 +1,17 @@
 package database
 
 import (
+	"apigateway/services/product/migrations"
+	"embed"
 	"errors"
 	"log"
 	"pkg/env"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
+
+var migrationFiles embed.FS
 
 func RunMigrations(cmd string, version int) error {
 	log.Printf("Running migration: %s", cmd)
@@ -15,7 +20,12 @@ func RunMigrations(cmd string, version int) error {
 		return errors.New("PRODUCT_MIGRATION_DB_URL is required")
 	}
 
-	m, err := migrate.New("file://migrations", connStr)
+	d, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", d, connStr)
 	if err != nil {
 		return err
 	}
