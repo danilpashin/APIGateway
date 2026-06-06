@@ -17,13 +17,15 @@ func FormatValidationError(err error) map[string]string {
 		case "required":
 			errMap[field] = "this field is required"
 		case "min":
-			errMap[field] = "too short"
+			errMap[field] = fmt.Sprintf("must be at least %s characters", err.Param())
 		case "max":
-			errMap[field] = "too large"
+			errMap[field] = fmt.Sprintf("must be at most %s characters", err.Param())
 		case "gt":
-			errMap[field] = fmt.Sprint("must be greater than ", err.Param())
+			errMap[field] = fmt.Sprintf("must be greater than %s", err.Param())
 		case "gte":
-			errMap[field] = fmt.Sprint("must be greater or equal ", err.Param())
+			errMap[field] = fmt.Sprintf("must be greater or equal %s", err.Param())
+		case "email":
+			errMap[field] = "invalid email format"
 		default:
 			errMap[field] = "incorrect input"
 		}

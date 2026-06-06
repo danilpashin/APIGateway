@@ -3,9 +3,11 @@ package service
 import (
 	"apigateway/services/user/internal/domain"
 	"apigateway/services/user/internal/repository/postgres"
+	"apigateway/services/user/internal/validator"
 	"context"
 	"errors"
 	"pkg/env"
+	"pkg/response"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -23,6 +25,11 @@ func NewUserService(repo postgres.UserRepoInterface) *UserService {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req *domain.CreateUserRequest) (*domain.User, error) {
+	if err := validator.New(req); err != nil {
+		errorData := response.FormatValidationError(err)
+		return nil, domain.ErrorResponse{Message: "validation error", Details: errorData}
+	}
+
 	insertData := make(map[string]any)
 
 	if req.Username != "" {
@@ -36,17 +43,18 @@ func (s *UserService) CreateUser(ctx context.Context, req *domain.CreateUserRequ
 		if err != nil {
 			return nil, errors.New("failed to generate password hash")
 		}
-		insertData["password_hash"] = passwordHash
-	}
-
-	if len(insertData) < 3 {
-		return nil, domain.ErrNoInsertData
+		insertData["password_hash"] = string(passwordHash)
 	}
 
 	return s.repo.CreateUser(ctx, insertData)
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.UpdateUserRequest) (*domain.User, error) {
+	if err := validator.New(req); err != nil {
+		errorData := response.FormatValidationError(err)
+		return nil, domain.ErrorResponse{Message: "validation error", Details: errorData}
+	}
+
 	currentUser, err := s.repo.GetUser(ctx, id)
 	if err != nil {
 		return nil, err
@@ -60,24 +68,23 @@ func (s *UserService) UpdateUser(ctx context.Context, id int, req *domain.Update
 		}
 	}
 
-	if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(*req.Password)); err != nil {
-		return nil, domain.ErrWrongEmailOrPassword
-	} else {
-		if req.Email != nil {
-			if *req.Email != "" {
-				updateData["email"] = *req.Email
+	if req.Password != nil {
+		if err = bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(*req.Password)); err != nil {
+			return nil, domain.ErrorResponse{Message: "incorrect password"}
+		} else {
+			if req.Email != nil {
+				if *req.Email != "" {
+					updateData["email"] = *req.Email
+				}
 			}
-		}
-		if req.NewPassword != nil {
-			if *req.NewPassword != "" {
-				if len(*req.NewPassword) < 8 {
-					return nil, domain.ErrInvalidPassword
+			if req.NewPassword != nil {
+				if *req.NewPassword != "" {
+					passwordHash, err := bcrypt.GenerateFromPassword([]byte(*req.NewPassword), bcryptCost)
+					if err != nil {
+						return nil, errors.New("failed to generate password hash")
+					}
+					updateData["password_hash"] = passwordHash
 				}
-				passwordHash, err := bcrypt.GenerateFromPassword([]byte(*req.NewPassword), bcryptCost)
-				if err != nil {
-					return nil, errors.New("failed to generate password hash")
-				}
-				updateData["password_hash"] = passwordHash
 			}
 		}
 	}

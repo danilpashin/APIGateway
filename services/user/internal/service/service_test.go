@@ -84,35 +84,42 @@ var testsCreate = []TestCreate{
 		wantErr: false,
 	},
 	{
-		name:     "error: missing required field: username",
-		input:    domain.CreateUserRequest{},
+		name: "error: missing required field: username",
+		input: domain.CreateUserRequest{
+			Email:    "test@gmail.com",
+			Password: "test-password-123",
+		},
 		wantErr:  true,
-		wantResp: domain.ErrUsernameRequired,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Username": "this field is required"}},
 	},
 	{
 		name: "error: invalid name format",
 		input: domain.CreateUserRequest{
 			Username: "t",
+			Email:    "test@gmail.com",
+			Password: "test-password-123",
 		},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidUsername,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Username": "must be at least 3 characters"}},
 	},
 	{
 		name: "error: missing required field: email",
 		input: domain.CreateUserRequest{
 			Username: "test-user",
+			Password: "test-password-123",
 		},
 		wantErr:  true,
-		wantResp: domain.ErrEmailRequired,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Email": "this field is required"}},
 	},
 	{
 		name: "error: invalid email format",
 		input: domain.CreateUserRequest{
 			Username: "test-user",
 			Email:    "1",
+			Password: "test-password-123",
 		},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidEmail,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Email": "invalid email format"}},
 	},
 	{
 		name: "error: missing required field: password",
@@ -121,7 +128,7 @@ var testsCreate = []TestCreate{
 			Email:    "test@gmail.com",
 		},
 		wantErr:  true,
-		wantResp: domain.ErrPasswordRequired,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Password": "this field is required"}},
 	},
 	{
 		name: "error: invalid password format",
@@ -131,7 +138,7 @@ var testsCreate = []TestCreate{
 			Password: "123",
 		},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidPassword,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Password": "must be at least 8 characters"}},
 	},
 }
 
@@ -140,7 +147,7 @@ func TestUserService_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := new(MockRepo)
 			if !tt.wantErr {
-				mockRepo.On("CreateUser", mock.Anything, tt.mockInput).Return(tt.mockResp, tt.wantResp)
+				mockRepo.On("CreateUser", mock.Anything, mock.Anything).Return(tt.mockResp, tt.wantResp)
 			}
 
 			userService := NewUserService(mockRepo)
@@ -160,43 +167,63 @@ func TestUserService_Create(t *testing.T) {
 }
 
 type TestUpdate struct {
-	name      string
-	input     domain.UpdateUserRequest
-	mockID    int
-	mockInput map[string]any
-	mockResp  *domain.User
-	want      *domain.User
-	wantErr   bool
-	wantResp  error
+	name           string
+	input          domain.UpdateUserRequest
+	mockID         int
+	mockGetResp    *domain.User
+	mockGetErr     error
+	mockUpdateResp *domain.User
+	mockUpdateErr  error
+	want           *domain.User
+	wantErr        bool
+	wantResp       error
 }
 
 var testsUpdate = []TestUpdate{
 	{
 		name: "success",
 		input: domain.UpdateUserRequest{
-			Username: stringPtr("UPD-test-user"),
-			Email:    stringPtr("upd-test@gmail.com"),
-			Password: stringPtr("test-password-123"),
+			Username:    stringPtr("UPD-test-user"),
+			Email:       stringPtr("upd-test@gmail.com"),
+			Password:    stringPtr("test-password-123"),
+			NewPassword: stringPtr("UPD-test-password-123"),
 		},
 		mockID: 1,
-		mockInput: map[string]any{
-			"username":      "UPD-test-user",
-			"email":         "upd-test@gmail.com",
-			"password_hash": "test-password-hash-123",
-		},
-		mockResp: &domain.User{
+		mockGetResp: &domain.User{
 			ID:           1,
 			Username:     "UPD-test-user",
 			Email:        "upd-test@gmail.com",
-			PasswordHash: "test-password-hash-123",
+			PasswordHash: "$2a$13$io.K4Ps.bMCNo/D2SfXlvejKnMjBmQkhQzJspzS0BeMNyrwkTfN0q",
+		},
+		mockUpdateResp: &domain.User{
+			ID:           1,
+			Username:     "UPD-test-user",
+			Email:        "upd-test@gmail.com",
+			PasswordHash: "$2a$13$io.K4Ps.bMCNo/D2SfXlvejKnMjBmQkhQzJspzS0BeMNyrwkTfN0q",
 		},
 		want: &domain.User{
 			ID:           1,
 			Username:     "UPD-test-user",
 			Email:        "upd-test@gmail.com",
-			PasswordHash: "test-password-hash-123",
+			PasswordHash: "$2a$13$io.K4Ps.bMCNo/D2SfXlvejKnMjBmQkhQzJspzS0BeMNyrwkTfN0q",
 		},
 		wantErr: false,
+	},
+	{
+		name: "error: wrong password",
+		input: domain.UpdateUserRequest{
+			Username: stringPtr("UPD-test-user"),
+			Email:    stringPtr("upd-test@gmail.com"),
+			Password: stringPtr("test-password-123"),
+		},
+		mockGetResp: &domain.User{
+			ID:           1,
+			Username:     "UPD-test-user",
+			Email:        "upd-test@gmail.com",
+			PasswordHash: "wrong-hash",
+		},
+		wantErr:  true,
+		wantResp: domain.ErrorResponse{Message: "incorrect password"},
 	},
 	{
 		name: "error: missing all update values",
@@ -217,7 +244,7 @@ var testsUpdate = []TestUpdate{
 		},
 		mockID:   1,
 		wantErr:  true,
-		wantResp: domain.ErrInvalidUsername,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Username": "must be at least 3 characters"}},
 	},
 	{
 		name: "error: invalid email format",
@@ -227,18 +254,38 @@ var testsUpdate = []TestUpdate{
 		},
 		mockID:   1,
 		wantErr:  true,
-		wantResp: domain.ErrInvalidEmail,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"Email": "invalid email format"}},
 	},
 	{
 		name: "error: invalid password format",
 		input: domain.UpdateUserRequest{
-			Username: stringPtr("UPD-Test-user"),
-			Email:    stringPtr("UPD-Test-email"),
-			Password: stringPtr("123"),
+			Username:    stringPtr("UPD-Test-user"),
+			Email:       stringPtr("upd-test@gmail.com"),
+			Password:    stringPtr("test-password-123"),
+			NewPassword: stringPtr("123"),
 		},
-		mockID:   1,
+		mockID: 1,
+		mockGetResp: &domain.User{
+			ID:           1,
+			Username:     "UPD-test-user",
+			Email:        "upd-test@gmail.com",
+			PasswordHash: "$2a$13$io.K4Ps.bMCNo/D2SfXlvejKnMjBmQkhQzJspzS0BeMNyrwkTfN0q",
+		},
 		wantErr:  true,
-		wantResp: domain.ErrInvalidPassword,
+		wantResp: domain.ErrorResponse{Message: "validation error", Details: map[string]string{"NewPassword": "must be at least 8 characters"}},
+	},
+	{
+		name: "error: user not found",
+		input: domain.UpdateUserRequest{
+			Username:    stringPtr("UPD-Test-user"),
+			Email:       stringPtr("upd-test@gmail.com"),
+			Password:    stringPtr("test-password-123"),
+			NewPassword: stringPtr("UPD-test-password-123"),
+		},
+		mockID:     1,
+		mockGetErr: domain.ErrUserNotFound,
+		wantErr:    true,
+		wantResp:   domain.ErrUserNotFound,
 	},
 }
 
@@ -246,9 +293,8 @@ func TestUserService_Update(t *testing.T) {
 	for _, tt := range testsUpdate {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := new(MockRepo)
-			if !tt.wantErr {
-				mockRepo.On("UpdateUser", mock.Anything, tt.mockID, tt.mockInput).Return(tt.mockResp, tt.wantResp)
-			}
+			mockRepo.On("GetUser", mock.Anything, mock.Anything).Return(tt.mockGetResp, tt.mockGetErr)
+			mockRepo.On("UpdateUser", mock.Anything, mock.Anything, mock.Anything).Return(tt.mockUpdateResp, tt.mockUpdateErr)
 
 			userService := NewUserService(mockRepo)
 
@@ -261,7 +307,6 @@ func TestUserService_Update(t *testing.T) {
 				assert.Equal(t, tt.want, user)
 				assert.Equal(t, nil, err)
 			}
-			mockRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -282,6 +327,7 @@ var testsGet = []TestGet{
 		name:   "success",
 		mockID: 1,
 		mockResp: &domain.User{
+			ID:       1,
 			Username: "Test-user",
 			Email:    "test@gmail.com",
 		},

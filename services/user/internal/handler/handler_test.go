@@ -397,7 +397,14 @@ var testsList = []TestList{
 		wantStatus: 200,
 	},
 	{
-		name: "error: users not found",
+		name:       "error: users not found",
+		url:        "/users?cursor=1&limit=3",
+		mockCursor: 1,
+		mockLimit:  3,
+		mockErr:    domain.ErrUserNotFound,
+		wantErr:    true,
+		wantStatus: 404,
+		wantResp:   domain.ErrorResponse{Message: domain.ErrUserNotFound.Error()},
 	},
 	{
 		name:       "error: invalid cursor",

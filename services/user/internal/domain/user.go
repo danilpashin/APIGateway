@@ -15,9 +15,9 @@ type User struct {
 
 // ===== CREATE =====
 type CreateUserRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,min=3,max=30"`
+	Email    string `json:"email" validate:"required,email,max=254"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
 }
 
 type CreateUserResponse struct {
@@ -28,10 +28,10 @@ type CreateUserResponse struct {
 
 // ===== UPDATE =====
 type UpdateUserRequest struct {
-	Username    *string `json:"username"`
-	Email       *string `json:"email"`
-	Password    *string `json:"oldPassword"`
-	NewPassword *string `json:"newPassword"`
+	Username    *string `json:"username" validate:"omitnil,min=3,max=30"`
+	Email       *string `json:"email" validate:"omitnil,email,max=254"`
+	Password    *string `json:"oldPassword" validate:"omitnil,min=8,max=72"`
+	NewPassword *string `json:"newPassword" validate:"omitnil,min=8,max=72"`
 }
 
 type UpdateUserResponse struct {
