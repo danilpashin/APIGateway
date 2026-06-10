@@ -79,17 +79,19 @@ func migrateCLI() bool {
 }
 
 func newRouter(db *sql.DB) *chi.Mux {
-	r := chi.NewRouter()
-
 	userRepo := postgres.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
+	r := chi.NewRouter()
+	r.Use(middleware.PanicRecoveryMiddleware)
 	r.Use(middleware.LoggingMiddleware)
 	r.Get("/health", healthHandler(db))
 	r.Post("/users/register", userHandler.CreateUser)
 	r.Put("/users/{id}", userHandler.UpdateUser)
 	r.Get("/users/{id}", userHandler.GetUser)
+	r.Get("/users", userHandler.ListUsers)
+	r.Delete("/users/{id}", userHandler.DeleteUser)
 
 	return r
 }
