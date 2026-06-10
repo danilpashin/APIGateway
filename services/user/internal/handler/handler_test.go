@@ -48,7 +48,7 @@ type TestCreate struct {
 	name       string
 	req        string
 	mockInput  *domain.CreateUserRequest
-	mockResp   *domain.User
+	mockReturn *domain.User
 	mockErr    error
 	resp       *domain.CreateUserResponse
 	wantErr    bool
@@ -61,7 +61,7 @@ var testsCreate = []TestCreate{
 		name:       "success",
 		req:        `{"username":"test-user", "email":"test@gmail.com", "password":"test"}`,
 		mockInput:  &domain.CreateUserRequest{Username: "test-user", Email: "test@gmail.com", Password: "test"},
-		mockResp:   &domain.User{Username: "test-user", Email: "test@gmail.com"},
+		mockReturn: &domain.User{Username: "test-user", Email: "test@gmail.com"},
 		resp:       &domain.CreateUserResponse{Username: "test-user", Email: "test@gmail.com"},
 		wantErr:    false,
 		wantStatus: 201,
@@ -70,7 +70,7 @@ var testsCreate = []TestCreate{
 		name:       "error: empty insert data",
 		req:        `{"username":"", "email":"", "password":""}`,
 		mockInput:  &domain.CreateUserRequest{Username: "", Email: "", Password: ""},
-		mockResp:   nil,
+		mockReturn: nil,
 		mockErr:    domain.ErrNoInsertData,
 		wantErr:    true,
 		wantStatus: 400,
@@ -98,7 +98,7 @@ func TestUserHandler_Create(t *testing.T) {
 	for _, tt := range testsCreate {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := new(MockService)
-			mockSvc.On("CreateUser", mock.Anything, tt.mockInput).Return(tt.mockResp, tt.mockErr)
+			mockSvc.On("CreateUser", mock.Anything, tt.mockInput).Return(tt.mockReturn, tt.mockErr)
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("POST", "/users/register", strings.NewReader(tt.req))
@@ -133,7 +133,7 @@ type TestUpdate struct {
 	resp       *domain.UpdateUserResponse
 	mockID     int
 	mockInput  *domain.UpdateUserRequest
-	mockResp   *domain.User
+	mockReturn *domain.User
 	mockErr    error
 	wantErr    bool
 	wantStatus int
@@ -154,7 +154,7 @@ var testsUpdate = []TestUpdate{
 			Password:    stringPtr("12345678"),
 			NewPassword: stringPtr("new_password123"),
 		},
-		mockResp:   &domain.User{ID: 1, Username: "UPD-test-user", Email: "upd-test@gmail.com", PasswordHash: "new_passwordhash123"},
+		mockReturn: &domain.User{ID: 1, Username: "UPD-test-user", Email: "upd-test@gmail.com", PasswordHash: "new_passwordhash123"},
 		wantErr:    false,
 		wantStatus: 200,
 	},
@@ -205,7 +205,7 @@ func TestUserHandler_Update(t *testing.T) {
 	for _, tt := range testsUpdate {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := new(MockService)
-			mockSvc.On("UpdateUser", mock.Anything, tt.mockID, tt.mockInput).Return(tt.mockResp, tt.mockErr)
+			mockSvc.On("UpdateUser", mock.Anything, tt.mockID, tt.mockInput).Return(tt.mockReturn, tt.mockErr)
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("PUT", tt.url, strings.NewReader(tt.req))
@@ -242,7 +242,7 @@ type TestGet struct {
 	url         string
 	resp        *domain.GetUserResponse
 	mockID      int
-	mockResp    *domain.User
+	mockReturn  *domain.User
 	mockErr     error
 	skipService bool
 	wantErr     bool
@@ -259,7 +259,7 @@ var testsGet = []TestGet{
 			Username: "test-user",
 		},
 		mockID: 1,
-		mockResp: &domain.User{
+		mockReturn: &domain.User{
 			ID:       1,
 			Username: "test-user",
 		},
@@ -297,7 +297,7 @@ func TestUserHandler_Get(t *testing.T) {
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := &MockService{}
-			mockSvc.On("GetUser", mock.Anything, tt.mockID).Return(tt.mockResp, tt.mockErr)
+			mockSvc.On("GetUser", mock.Anything, tt.mockID).Return(tt.mockReturn, tt.mockErr)
 
 			userHandler := NewUserHandler(mockSvc)
 
@@ -333,7 +333,7 @@ type TestList struct {
 	url            string
 	mockCursor     int
 	mockLimit      uint64
-	mockResp       []*domain.User
+	mockReturn     []*domain.User
 	mockPagination *domain.Pagination
 	mockErr        error
 	resp           domain.ListUsersResponse
@@ -349,7 +349,7 @@ var testsList = []TestList{
 		url:        "/users?cursor=1&limit=2",
 		mockCursor: 1,
 		mockLimit:  2,
-		mockResp: []*domain.User{
+		mockReturn: []*domain.User{
 			{
 				ID:           1,
 				Username:     "test-user1",
@@ -436,7 +436,7 @@ func TestUserHandler_List(t *testing.T) {
 	for _, tt := range testsList {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := new(MockService)
-			mockSvc.On("ListUsers", mock.Anything, tt.mockCursor, tt.mockLimit).Return(tt.mockResp, tt.mockPagination, tt.mockErr)
+			mockSvc.On("ListUsers", mock.Anything, tt.mockCursor, tt.mockLimit).Return(tt.mockReturn, tt.mockPagination, tt.mockErr)
 
 			userHandler := NewUserHandler(mockSvc)
 

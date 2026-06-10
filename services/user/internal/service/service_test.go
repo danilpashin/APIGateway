@@ -44,14 +44,14 @@ func (m *MockRepo) DeleteUser(ctx context.Context, id int) error {
 }
 
 type TestCreate struct {
-	name      string
-	input     domain.CreateUserRequest
-	mockInput map[string]any
-	mockResp  *domain.User
-	mockError error
-	want      *domain.User
-	wantErr   bool
-	wantResp  error
+	name       string
+	input      domain.CreateUserRequest
+	mockInput  map[string]any
+	mockReturn *domain.User
+	mockError  error
+	want       *domain.User
+	wantErr    bool
+	wantResp   error
 }
 
 var testsCreate = []TestCreate{
@@ -67,7 +67,7 @@ var testsCreate = []TestCreate{
 			"email":         "test@gmail.com",
 			"password_hash": "test-password-hash-123",
 		},
-		mockResp: &domain.User{
+		mockReturn: &domain.User{
 			ID:           1,
 			Username:     "test-user",
 			Email:        "test@gmail.com",
@@ -147,7 +147,7 @@ func TestUserService_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := new(MockRepo)
 			if !tt.wantErr {
-				mockRepo.On("CreateUser", mock.Anything, mock.Anything).Return(tt.mockResp, tt.wantResp)
+				mockRepo.On("CreateUser", mock.Anything, mock.Anything).Return(tt.mockReturn, tt.wantResp)
 			}
 
 			userService := NewUserService(mockRepo)
@@ -314,19 +314,19 @@ func TestUserService_Update(t *testing.T) {
 func stringPtr(s string) *string { return &s }
 
 type TestGet struct {
-	name     string
-	mockID   int
-	mockResp *domain.User
-	want     *domain.User
-	wantErr  bool
-	wantResp error
+	name       string
+	mockID     int
+	mockReturn *domain.User
+	want       *domain.User
+	wantErr    bool
+	wantResp   error
 }
 
 var testsGet = []TestGet{
 	{
 		name:   "success",
 		mockID: 1,
-		mockResp: &domain.User{
+		mockReturn: &domain.User{
 			ID:       1,
 			Username: "Test-user",
 			Email:    "test@gmail.com",
@@ -351,7 +351,7 @@ func TestUserService_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := new(MockRepo)
 			if !tt.wantErr {
-				mockRepo.On("GetUser", mock.Anything, tt.mockID).Return(tt.mockResp, tt.wantResp)
+				mockRepo.On("GetUser", mock.Anything, tt.mockID).Return(tt.mockReturn, tt.wantResp)
 			}
 
 			userService := NewUserService(mockRepo)
