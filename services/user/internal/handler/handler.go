@@ -6,11 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httplog/v3"
 )
 
 type UserHandler struct {
@@ -23,16 +24,19 @@ func NewUserHandler(service service.UserServiceInterface) *UserHandler {
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	httplog.SetAttrs(r.Context(), slog.String("handler", "CreateUser"))
+
 	var req domain.CreateUserRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidJSON)
+		h.handleError(r.Context(), w, domain.ErrInvalidJSON)
 		return
 	}
 
 	user, err := h.service.CreateUser(r.Context(), &req)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(r.Context(), w, err, slog.Any("req", req))
 		return
 	}
 
@@ -45,27 +49,30 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	httplog.SetAttrs(r.Context(), slog.String("handler", "UpdateUser"))
+
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		h.handleError(w, domain.ErrIDRequired)
+		h.handleError(r.Context(), w, domain.ErrIDRequired)
 		return
 	}
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidID)
+		h.handleError(r.Context(), w, domain.ErrInvalidID)
 		return
 	}
 
 	var req domain.UpdateUserRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidJSON)
+		h.handleError(r.Context(), w, domain.ErrInvalidJSON)
 		return
 	}
 
 	user, err := h.service.UpdateUser(r.Context(), idInt, &req)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(r.Context(), w, err, slog.Int("id", idInt), slog.Any("req", req))
 		return
 	}
 
@@ -78,20 +85,23 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	httplog.SetAttrs(r.Context(), slog.String("handler", "GetUser"))
+
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		h.handleError(w, domain.ErrIDRequired)
+		h.handleError(r.Context(), w, domain.ErrIDRequired)
 		return
 	}
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidID)
+		h.handleError(r.Context(), w, domain.ErrInvalidID)
 		return
 	}
 
 	user, err := h.service.GetUser(r.Context(), idInt)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(r.Context(), w, err, slog.Int("id", idInt))
 		return
 	}
 
@@ -104,23 +114,32 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	httplog.SetAttrs(r.Context(), slog.String("handler", "ListUsers"))
+
 	cursorStr := r.URL.Query().Get("cursor")
+	if cursorStr == "" {
+		cursorStr = "0"
+	}
 	cursor, err := strconv.Atoi(cursorStr)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidCursor)
+		h.handleError(r.Context(), w, domain.ErrInvalidCursor)
 		return
 	}
 
 	limitStr := r.URL.Query().Get("limit")
+	if limitStr == "" {
+		limitStr = "10"
+	}
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidLimit)
+		h.handleError(r.Context(), w, domain.ErrInvalidLimit)
 		return
 	}
 
-	listUsers, pagination, err := h.service.ListUsers(context.Background(), cursor, uint64(limit))
+	listUsers, pagination, err := h.service.ListUsers(r.Context(), cursor, uint64(limit))
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(r.Context(), w, err, slog.Int("cursor", cursor), slog.Int("limit", limit))
 		return
 	}
 
@@ -134,27 +153,30 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	httplog.SetAttrs(r.Context(), slog.String("handler", "DeleteUser"))
+
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
-		h.handleError(w, domain.ErrIDRequired)
+		h.handleError(r.Context(), w, domain.ErrIDRequired)
 		return
 	}
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.handleError(w, domain.ErrInvalidID)
+		h.handleError(r.Context(), w, domain.ErrInvalidID)
 		return
 	}
 
-	err = h.service.DeleteUser(context.Background(), idInt)
+	err = h.service.DeleteUser(r.Context(), idInt)
 	if err != nil {
-		h.handleError(w, err)
+		h.handleError(r.Context(), w, err, slog.Int("userID", idInt))
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *UserHandler) handleError(w http.ResponseWriter, err error) {
+func (h *UserHandler) handleError(ctx context.Context, w http.ResponseWriter, err error, attrs ...slog.Attr) {
 	var statusCode int
 	var errResp domain.ErrorResponse
 
@@ -197,7 +219,11 @@ func (h *UserHandler) handleError(w http.ResponseWriter, err error) {
 	default:
 		statusCode = http.StatusInternalServerError
 		errResp = domain.ErrorResponse{Message: "internal server error"}
-		log.Printf("unexpected error: %v", err)
+
+		if len(attrs) > 0 {
+			httplog.SetAttrs(ctx, attrs...)
+		}
+		httplog.SetError(ctx, err)
 	}
 
 	JSONError(w, statusCode, errResp)

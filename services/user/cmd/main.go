@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httplog/v3"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -79,13 +81,31 @@ func migrateCLI() bool {
 }
 
 func newRouter(db *sql.DB) *chi.Mux {
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "production"
+	}
+
+	var logger *slog.Logger
+	var logFormat *httplog.Schema
+
+	if env == "local" {
+		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logFormat = httplog.SchemaECS.Concise(true)
+	} else {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		logFormat = httplog.SchemaECS
+	}
+
 	userRepo := postgres.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
 	r := chi.NewRouter()
+	r.Use(httplog.RequestLogger(logger, &httplog.Options{
+		Schema: logFormat,
+	}))
 	r.Use(middleware.PanicRecoveryMiddleware)
-	r.Use(middleware.LoggingMiddleware)
 	r.Get("/health", healthHandler(db))
 	r.Post("/users/register", userHandler.CreateUser)
 	r.Put("/users/{id}", userHandler.UpdateUser)
