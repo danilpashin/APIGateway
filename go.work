@@ -1,8 +1,9 @@
-go 1.26.1
+go 1.26.3
 
 use (
 	./pkg
 	./services/gateway
+	./services/order
 	./services/product
 	./services/user
 )
