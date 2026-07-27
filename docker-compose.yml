@@ -1,15 +1,21 @@
 services:
+  redis:
+    image: redis:8.6.5-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - ":6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
   postgres-products:
     image: postgres:15-alpine
     container_name: postgres-products
-    environment:
-      - POSTGRES_USER=${PRODUCT_POSTGRES_DB_USER}
-      - POSTGRES_PASSWORD=${PRODUCT_POSTGRES_DB_PASSWORD}
-      - POSTGRES_DB=${PRODUCT_DB_NAME}
-      - PRODUCT_DB_USER=${PRODUCT_DB_USER}
-      - PRODUCT_DB_PASSWORD=${PRODUCT_DB_PASSWORD}
-      - PRODUCT_MIGRATION_DB_USER=${PRODUCT_MIGRATION_DB_USER}
-      - PRODUCT_MIGRATION_DB_PASSWORD=${PRODUCT_MIGRATION_DB_PASSWORD}
+    env_file:
+      - .env
     ports:
       - ":5432"
     healthcheck:
@@ -22,49 +28,33 @@ services:
 
   product-migrations:
     container_name: product-migrations
-    build: 
-      context: .
-      dockerfile: Dockerfile.product
+    image: apigateway:1.0
     command: ["/product", "-cmd=up"]
-    environment:
-      - PRODUCT_MIGRATION_DB_USER=${PRODUCT_MIGRATION_DB_USER}
-      - PRODUCT_MIGRATION_DB_PASSWORD=${PRODUCT_MIGRATION_DB_PASSWORD}
-      - PRODUCT_MIGRATION_DB_URL=postgresql://${PRODUCT_MIGRATION_DB_USER}:${PRODUCT_MIGRATION_DB_PASSWORD}@postgres-products:${PRODUCT_DB_PORT}/${PRODUCT_DB_NAME}?sslmode=disable
+    env_file:
+      - .env
     depends_on:
       postgres-products:
         condition: service_healthy
 
   product-service:
     container_name: product-service
-    build:
-      context: .
-      dockerfile: Dockerfile.product
+    image: apigateway:1.0
     depends_on:
       postgres-products:
         condition: service_healthy
       product-migrations:
         condition: service_completed_successfully
-    environment:
-      - PRODUCT_DB_HOST=postgres-products
-      - PRODUCT_DB_PORT=${PRODUCT_DB_PORT}
-      - PRODUCT_DB_NAME=${PRODUCT_DB_NAME}
-      - PRODUCT_DB_USER=${PRODUCT_DB_USER}
-      - PRODUCT_DB_PASSWORD=${PRODUCT_DB_PASSWORD}
-      - PRODUCT_DB_URL=postgresql://${PRODUCT_DB_USER}:${PRODUCT_DB_PASSWORD}@postgres-products:${PRODUCT_DB_PORT}/${PRODUCT_DB_NAME}?sslmode=disable
+    env_file:
+      - .env
     ports:
       - "${PRODUCT_PORT}:${PRODUCT_PORT}"
+    command: ./product
 
   postgres-users:
     image: postgres:15-alpine
     container_name: postgres-users
-    environment:
-      - POSTGRES_USER=${USER_POSTGRES_DB_USER}
-      - POSTGRES_PASSWORD=${USER_POSTGRES_DB_PASSWORD}
-      - POSTGRES_DB=${USER_DB_NAME}
-      - USER_DB_USER=${USER_DB_USER}
-      - USER_DB_PASSWORD=${USER_DB_PASSWORD}
-      - USER_MIGRATION_DB_USER=${USER_MIGRATION_DB_USER}
-      - USER_MIGRATION_DB_PASSWORD=${USER_MIGRATION_DB_PASSWORD}
+    env_file:
+      - .env
     ports:
       - ":5432"
     healthcheck:
@@ -77,34 +67,51 @@ services:
   
   user-migrations:
     container_name: user-migrations
-    build: 
-      context: .
-      dockerfile: Dockerfile.user
+    image: apigateway:1.0
     command: ["/user", "-cmd=up"]
-    environment:
-      - USER_MIGRATION_DB_USER=${USER_MIGRATION_DB_USER}
-      - USER_MIGRATION_DB_PASSWORD=${USER_MIGRATION_DB_PASSWORD}
-      - USER_MIGRATION_DB_URL=postgresql://${USER_MIGRATION_DB_USER}:${USER_MIGRATION_DB_PASSWORD}@postgres-users:${USER_DB_PORT}/${USER_DB_NAME}?sslmode=disable
+    env_file:
+      - .env
     depends_on:
       postgres-users:
         condition: service_healthy
 
   user-service:
     container_name: user-service
-    build:
-      context: .
-      dockerfile: Dockerfile.user
+    image: apigateway:1.0
     depends_on:
       postgres-users:
         condition: service_healthy
       user-migrations:
         condition: service_completed_successfully
-    environment:
-      - USER_DB_HOST=postgres-users
-      - USER_DB_PORT=${USER_DB_PORT}
-      - USER_DB_NAME=${USER_DB_NAME}
-      - USER_DB_USER=${USER_DB_USER}
-      - USER_DB_PASSWORD=${USER_DB_PASSWORD}
-      - USER_DB_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@postgres-users:${USER_DB_PORT}/${USER_DB_NAME}?sslmode=disable
+    env_file:
+      - .env
     ports:
       - "${USER_PORT}:${USER_PORT}"
+    command: ./user
+
+  postgres-orders:
+    image: postgres:15-alpine
+    container_name: postgres-orders
+    env_file:
+      - .env
+    ports:
+      - ":5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./services/order/init.sh:/docker-entrypoint-initdb.d/init.sh
+
+  order-service:
+    container_name: order-service
+    image: apigateway:1.0
+    depends_on:
+      postgres-orders:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "${ORDER_PORT}:${ORDER_PORT}"
+    command: ./order
