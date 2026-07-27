@@ -4,15 +4,14 @@ import (
 	"apigateway/services/user/internal/config"
 	"apigateway/services/user/internal/database"
 	"apigateway/services/user/internal/handler"
-	"apigateway/services/user/internal/middleware"
+	"apigateway/services/user/internal/mw"
 	"apigateway/services/user/internal/repository/postgres"
 	"apigateway/services/user/internal/service"
+	"apigateway/services/user/internal/sl"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,42 +24,87 @@ import (
 	"github.com/go-chi/httplog/v3"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+type Application struct {
+	logger    *slog.Logger
+	logFormat *httplog.Schema
+}
 
 func main() {
 	env.LoadEnv()
 	cfg := config.Load()
 
-	if migrateCLI() {
+	logHandler, logFormat := newLogger()
+
+	logger := slog.New(&sl.ContextHandler{Handler: logHandler})
+	slog.SetDefault(logger)
+
+	app := &Application{
+		logger:    logger,
+		logFormat: logFormat,
+	}
+
+	if app.migrateCLI() {
 		return
 	}
 
-	db := initDB()
-	defer db.Close()
+	pool, err := app.initPool()
+	if err != nil {
+		logger.Error("Critical initialization error", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer pool.Close()
 
-	runServer(cfg, db)
+	app.runServer(cfg, pool)
 }
 
-func runServer(cfg *config.Config, db *sql.DB) {
-	r := newRouter(db)
+func (app *Application) runServer(cfg *config.Config, pool *pgxpool.Pool) {
+	r := app.newRouter(pool)
 
 	srv := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.HTTPPort),
 		Handler: r,
 	}
-	log.Print("Server starting on", srv.Addr)
+	app.logger.Info("Server starting", "address", srv.Addr)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			app.logger.Error("Server failed", slog.Any("error", err))
+			os.Exit(1)
 		}
 	}()
 
-	gracefulShutdown(&srv, db)
+	app.gracefulShutdown(&srv, pool)
 }
 
-func migrateCLI() bool {
+func (app *Application) newRouter(pool *pgxpool.Pool) *chi.Mux {
+	userRepo := postgres.NewUserRepository(pool)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+	r := chi.NewRouter()
+	r.Use(mw.RequestIDMiddleware)
+	r.Use(httplog.RequestLogger(app.logger, &httplog.Options{
+		Schema:        app.logFormat,
+		RecoverPanics: true,
+	}))
+	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
+		panic("тестовая паника бизнес-логики")
+	})
+	r.Get("/health", app.healthHandler(pool))
+	r.Post("/users/register", userHandler.CreateUser)
+	r.Put("/users/{id}", userHandler.UpdateUser)
+	r.Get("/users/{id}", userHandler.GetUser)
+	r.Get("/users", userHandler.ListUsers)
+	r.Delete("/users/{id}", userHandler.DeleteUser)
+
+	return r
+}
+
+func (app *Application) migrateCLI() bool {
 	var cmd string
 	var version int
 
@@ -73,94 +117,59 @@ func migrateCLI() bool {
 	}
 
 	if err := database.RunMigrations(cmd, version); err != nil {
-		log.Fatalf("Failed to migrate: %v", err)
+		app.logger.Error("Failed to migrate", slog.Any("error", err))
+		os.Exit(1)
 	}
-	log.Print("Migration completed")
+	app.logger.Info("Migration completed")
 
 	return true
 }
 
-func newRouter(db *sql.DB) *chi.Mux {
-	env := os.Getenv("APP_ENV")
-	if env == "" {
-		env = "production"
-	}
-
-	var logger *slog.Logger
-	var logFormat *httplog.Schema
-
-	if env == "local" {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		logFormat = httplog.SchemaECS.Concise(true)
-	} else {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-		logFormat = httplog.SchemaECS
-	}
-
-	userRepo := postgres.NewUserRepository(db)
-	userService := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userService)
-
-	r := chi.NewRouter()
-	r.Use(httplog.RequestLogger(logger, &httplog.Options{
-		Schema: logFormat,
-	}))
-	r.Use(middleware.PanicRecoveryMiddleware)
-	r.Get("/health", healthHandler(db))
-	r.Post("/users/register", userHandler.CreateUser)
-	r.Put("/users/{id}", userHandler.UpdateUser)
-	r.Get("/users/{id}", userHandler.GetUser)
-	r.Get("/users", userHandler.ListUsers)
-	r.Delete("/users/{id}", userHandler.DeleteUser)
-
-	return r
-}
-
-func initDB() *sql.DB {
+func (app *Application) initPool() (*pgxpool.Pool, error) {
 	connStr := env.GetEnv("USER_DB_URL")
 	if connStr == "" {
-		log.Fatal("USER_DB_URL is required")
+		return nil, fmt.Errorf("USER_DB_URL is required")
 	}
 
-	db, err := database.NewDB(connStr)
+	pool, err := database.NewPgxPool(connStr, app.logger)
 	if err != nil {
-		log.Fatalf("Failed to open DB: %v", err)
+		return nil, fmt.Errorf("failed to open DB")
 	}
 
-	if err = db.Ping(); err != nil {
-		log.Fatalf("Failed ping to DB: %v", err)
+	if err = pool.Ping(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed ping to DB")
 	}
-	log.Print("Database connected")
+	app.logger.Info("Database connected")
 
-	return db
+	return pool, nil
 }
 
-func gracefulShutdown(srv *http.Server, db *sql.DB) {
+func (app *Application) gracefulShutdown(srv *http.Server, pool *pgxpool.Pool) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Print("Shutting down...")
+	app.logger.Info("Shutting down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Forced shutdown: %v", err)
+		app.logger.Error("Forced shutdown", slog.Any("error", err))
+		os.Exit(1)
 	}
 
-	if err := db.Close(); err != nil {
-		log.Printf("DB close error: %v", err)
-	}
+	pool.Close()
 
-	log.Print("Server exit")
+	app.logger.Info("Server exited gracefully")
 }
 
-func healthHandler(db *sql.DB) http.HandlerFunc {
+func (app *Application) healthHandler(pool *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
-		if err := db.Ping(); err != nil {
-			http.Error(w, "DB not ready", http.StatusServiceUnavailable)
+		if err := pool.Ping(r.Context()); err != nil {
+			app.logger.ErrorContext(r.Context(), "DB health check failed", slog.Any("error", err))
+			http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
 			return
 		}
 
@@ -168,4 +177,24 @@ func healthHandler(db *sql.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
+}
+
+func newLogger() (slog.Handler, *httplog.Schema) {
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "production"
+	}
+
+	var logHandler slog.Handler
+	var logFormat *httplog.Schema
+
+	if env == "local" {
+		logHandler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+		logFormat = httplog.SchemaECS.Concise(false)
+	} else {
+		logHandler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
+		logFormat = httplog.SchemaECS
+	}
+
+	return logHandler, logFormat
 }

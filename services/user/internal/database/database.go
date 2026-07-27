@@ -1,29 +1,44 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
+	"log/slog"
 	"time"
+
+	pgxslogger "github.com/induzo/gocom/database/pgx-slog"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
 )
 
-func NewDB(connStr string) (*sql.DB, error) {
-	db, err := connect(connStr)
+func NewPgxPool(connStr string, logger *slog.Logger) (*pgxpool.Pool, error) {
+	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse conn string: %w", err)
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	config.MaxConns = 25
+	config.MinConns = 5
+	config.MaxConnLifetime = 5 * time.Minute
 
-	return db, nil
-}
+	tracelogger := pgxslogger.NewLogger(logger)
 
-func connect(connStr string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", connStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %v", err)
+	config.ConnConfig.Tracer = &tracelog.TraceLog{
+		Logger:   tracelogger,
+		LogLevel: tracelog.LogLevelInfo,
 	}
 
-	return db, nil
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pool: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping DB: %w", err)
+	}
+
+	return pool, nil
 }

@@ -3,20 +3,21 @@ package postgres
 import (
 	"apigateway/services/user/internal/domain"
 	"context"
-	"database/sql"
 	"errors"
-	"log"
+	"fmt"
 	"slices"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserRepository struct {
-	db *sql.DB
+	pool *pgxpool.Pool
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
+	return &UserRepository{pool: pool}
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]any) (*domain.User, error) {
@@ -31,7 +32,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, insertData map[string]a
 		return nil, err
 	}
 
-	err = r.db.QueryRowContext(ctx, query, args...).
+	err = r.pool.QueryRow(ctx, query, args...).
 		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -52,10 +53,10 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id int, updateData map[
 		return nil, err
 	}
 
-	err = r.db.QueryRowContext(ctx, query, args...).
+	err = r.pool.QueryRow(ctx, query, args...).
 		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
@@ -68,10 +69,10 @@ func (r *UserRepository) GetUser(ctx context.Context, id int) (*domain.User, err
 	var user domain.User
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.created_at, u.updated_at, r.name AS role_name FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id = $1`
 
-	err := r.db.QueryRowContext(ctx, query, id).
+	err := r.pool.QueryRow(ctx, query, id).
 		Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &user.Role)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
@@ -84,7 +85,7 @@ func (r *UserRepository) ListUsers(ctx context.Context, cursor int, limit uint64
 	extLimit := limit + 1
 	query := `SELECT u.id, u.username, u.email, u.password_hash, u.created_at, u.updated_at, r.name AS role_name FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id >= $1 LIMIT $2`
 
-	rows, err := r.db.QueryContext(ctx, query, cursor, extLimit)
+	rows, err := r.pool.Query(ctx, query, cursor, extLimit)
 	if err != nil {
 		return nil, 0, false, err
 	}
@@ -117,23 +118,19 @@ func (r *UserRepository) ListUsers(ctx context.Context, cursor int, limit uint64
 func (r *UserRepository) DeleteUser(ctx context.Context, id int) error {
 	query := `DELETE FROM users WHERE id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, id)
+	commandTag, err := r.pool.Exec(ctx, query, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return domain.ErrUserNotFound
-		}
-		return err
+		return fmt.Errorf("pool exec error: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		log.Println(err)
-		return errors.New("internal server error")
+	rows := commandTag.RowsAffected()
+
+	if rows == 0 {
+		return domain.ErrUserNotFound
 	}
 
 	if rows != 1 {
-		log.Println("expected to affect 1 row, affected: ", rows)
-		return errors.New("internal server error")
+		return fmt.Errorf("expected to affect 1 row, affected: %d", rows)
 	}
 
 	return nil

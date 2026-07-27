@@ -8,7 +8,9 @@ require (
 	github.com/go-chi/httplog/v3 v3.4.0
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/golang-migrate/migrate/v4 v4.19.1
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/google/uuid v1.6.0
+	github.com/induzo/gocom/database/pgx-slog v1.0.39
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.52.0
 	pkg v0.0.0-00010101000000-000000000000

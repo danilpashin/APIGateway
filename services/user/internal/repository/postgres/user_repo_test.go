@@ -1,10 +1,11 @@
 package postgres
 
 import (
+	"apigateway/services/user/internal/database"
 	"apigateway/services/user/internal/domain"
 	"context"
-	"database/sql"
 	"fmt"
+	"log/slog"
 	"os"
 	"testing"
 
@@ -35,11 +36,15 @@ func setupTestDB(t *testing.T) *UserRepository {
 	}
 	dbName := os.Getenv("USER_DB_NAME")
 	if dbName == "" {
-		dbName = "users_db"
+		dbName = "users_pool"
 	}
 
+	var logger *slog.Logger
+
+	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
 	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
-	db, err := sql.Open("pgx", connStr)
+	pool, err := database.NewPgxPool(connStr, logger)
 	require.NoError(t, err)
 
 	m, err := migrate.New("file://../../../migrations", connStr)
@@ -47,17 +52,17 @@ func setupTestDB(t *testing.T) *UserRepository {
 
 	m.Up()
 
-	if err = db.Ping(); err != nil {
+	if err = pool.Ping(context.Background()); err != nil {
 		t.Fatal("failed to connect database: ", err)
 	}
 
 	t.Cleanup(func() {
-		db.Exec("TRUNCATE users CASCADE")
-		db.Exec("ALTER SEQUENCE users_id_seq RESTART WITH 1")
-		db.Close()
+		pool.Exec(context.Background(), "TRUNCATE users CASCADE")
+		pool.Exec(context.Background(), "ALTER SEQUENCE users_id_seq RESTART WITH 1")
+		pool.Close()
 	})
 
-	return NewUserRepository(db)
+	return NewUserRepository(pool)
 }
 
 var testUser = map[string]any{
