@@ -28,7 +28,17 @@ services:
       - PRODUCT_DB_HOST=postgres-products
       - PRODUCT_DB_PORT=5432
       - PRODUCT_DB_NAME=products_db
-    command: go test -v -cover ./internal/handler/... ./internal/service/... ./internal/repository/...
+    volumes:
+      - ./coverage-results:/app/coverage_share
+    command: >
+      sh -c "
+      go test 
+      ./internal/handler/... 
+      ./internal/service/... 
+      ./internal/repository/... 
+      -coverprofile /app/coverage_share/product.out && 
+      go tool cover -func ./coverage.out -o ./coverage.out
+      "
 
   postgres-users:
     image: postgres:15-alpine
@@ -59,4 +69,14 @@ services:
       - USER_DB_HOST=postgres-users
       - USER_DB_PORT=5432
       - USER_DB_NAME=users_db
-    command: go test -v -cover ./internal/handler/... ./internal/service/... ./internal/repository/...
+    volumes:
+      - ./coverage-results:/app/coverage_share
+    command: >
+      sh -c "
+      go test 
+      ./internal/handler/... 
+      ./internal/service/... 
+      ./internal/repository/... 
+      -coverprofile /app/coverage_share/user.out && 
+      go tool cover -func ./coverage.out -o ./coverage.out
+      "

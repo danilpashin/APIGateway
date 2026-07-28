@@ -1,5 +1,7 @@
 # 🛠️API Gateway
 ## _High-load microservices gateway on Go_
+![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)
+![Coverage](https://img.shields.io/badge/Coverage-85.8%25-brightgreen)
 
 ## 🗺️ Roadmap
 
