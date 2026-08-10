@@ -45,10 +45,9 @@ jobs:
       run: docker compose -f docker-compose.test.yml down --volumes
 
     - name: Merge coverage profiles
-      uses: cutecutecat/go-cover-merge@v1
-      with:
-        input_dir: 'coverage-results'
-        output_file: 'total-coverage.out'
+      run: |
+        echo "mode: set" > total-coverage.out
+        grep -h -v "^mode:" ./coverage-results/*.out >> total-coverage.out
 
     - name: Go Coverage Badge
       uses: tj-actions/coverage-badge-go@v3
