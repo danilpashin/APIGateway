@@ -10,15 +10,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
     
     steps:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
-        fetch-depth: 0  
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26.3'
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -40,16 +42,29 @@ jobs:
 
     - name: Run product tests
       run: |
-        docker compose -f docker-compose.test.yml run --rm product-tests
+        docker compose -f docker-compose.test.yml up product-tests
+        docker cp product-tests:/app/coverage_share/product.out ./coverage-results/product.out
     
     - name: Run user tests
       run: |
-        docker compose -f docker-compose.test.yml run --rm user-tests
+        docker compose -f docker-compose.test.yml up user-tests
+        docker cp user-tests:/app/coverage_share/user.out ./coverage-results/user.out
+
+    - name: Cleanup
+      if: always()
+      run: docker compose -f docker-compose.test.yml down --volumes
 
     - name: Merge coverage profiles
       run: |
         echo "mode: set" > total-coverage.out
-        grep -h -v "^mode:" ./coverage-results/*.out >> total-coverage.out
+        ls -la ./coverage-results/ || true
+
+        if compgen -G "./coverage-results/*.out" > /dev/null; then
+          grep -h -v "^mode:" ./coverage-results/*.out >> total-coverage.out
+          echo "Files merged successfully."
+        else
+          echo "Files *.out not found in ./coverage-results/"
+        fi
 
     - name: Go Coverage Badge
       uses: tj-actions/coverage-badge-go@v3
@@ -76,7 +91,3 @@ jobs:
       with:
         github_token: ${{ github.token }}
         branch: ${{ github.head_ref }}
-
-    - name: Cleanup
-      if: always()
-      run: docker compose -f docker-compose.test.yml down --volumes
